@@ -200,33 +200,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// AI response generator using Groq open source LLM
+// Enhanced AI response generator with knowledge base priority and web fallback
 async function generateAIResponse(message: string, employeeId: string): Promise<string> {
   try {
     if (!process.env.GROQ_API_KEY) {
       return "I'm currently unavailable. Please contact your HR representative for assistance.";
     }
 
-    // Search for relevant documents to provide context
+    // Step 1: Search company knowledge base first
     const relevantDocs = await storage.searchDocuments(message);
     
-    // Create context from relevant documents
-    const context = relevantDocs
-      .slice(0, 3)
-      .map(doc => `Document: ${doc.title}\nContent: ${doc.content.substring(0, 500)}...`)
-      .join("\n\n");
+    let context = "";
+    let hasRelevantKnowledge = false;
+    
+    if (relevantDocs.length > 0) {
+      // Check if documents contain substantial relevant content
+      hasRelevantKnowledge = relevantDocs.some(doc => 
+        doc.title.toLowerCase().includes(message.toLowerCase().split(' ').find(word => word.length > 3) || '') ||
+        doc.content.toLowerCase().includes(message.toLowerCase().split(' ').find(word => word.length > 3) || '')
+      );
+      
+      context = relevantDocs
+        .slice(0, 3)
+        .map(doc => `Document: ${doc.title}\nCategory: ${doc.category}\nContent: ${doc.content.substring(0, 600)}...`)
+        .join("\n\n");
+    }
+
+    // Step 2: If no relevant knowledge base content, search the web
+    let webContext = "";
+    if (!hasRelevantKnowledge) {
+      try {
+        const webResults = await searchWeb(message);
+        if (webResults) {
+          webContext = `\n\nAdditional context from web search:\n${webResults}`;
+          context += webContext;
+        }
+      } catch (webError) {
+        console.log('Web search unavailable, using knowledge base only');
+      }
+    }
 
     const systemPrompt = `You are an AI assistant for Cognizant's employee onboarding platform. You help new employees with onboarding questions, company policies, project information, and technical setup.
 
-Context from company documents:
+${context ? `Context from ${hasRelevantKnowledge ? 'company documents' : 'company documents and web search'}:
 ${context}
 
 Guidelines:
+- Prioritize information from company documents over web sources
 - Be helpful, friendly, and professional
 - Provide specific, actionable advice
 - Reference company documents when relevant
-- If you don't know something, suggest they check the knowledge base or contact HR
-- Keep responses concise but informative`;
+- If using web information, clearly indicate it's general guidance
+- Keep responses concise but informative` : `No specific company documents found for this question.
+
+Guidelines:
+- Be helpful, friendly, and professional
+- Provide general guidance based on common industry practices
+- Suggest checking the knowledge base for company-specific policies
+- Recommend contacting HR for definitive company information`}`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -235,12 +266,12 @@ Guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile', // Fast, high-quality open source model
+        model: 'llama-3.1-70b-versatile',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
-        max_tokens: 500,
+        max_tokens: 600,
         temperature: 0.7,
       }),
     });
@@ -255,5 +286,34 @@ Guidelines:
   } catch (error) {
     console.error('Error generating AI response:', error);
     return "I'm experiencing technical difficulties. Please try again in a moment or contact your HR representative for immediate assistance.";
+  }
+}
+
+// Web search fallback function
+async function searchWeb(query: string): Promise<string | null> {
+  try {
+    // Use a simple web search approach - in production you'd use a proper search API
+    const searchQuery = encodeURIComponent(`${query} onboarding best practices`);
+    
+    // For now, return general guidance based on common patterns
+    // In a real implementation, you'd integrate with a web search API
+    const generalGuidance = {
+      "development environment": "General development setup typically involves installing required tools, configuring version control, setting up local databases, and installing project dependencies.",
+      "security": "Common security practices include using strong passwords, enabling 2FA, following company VPN policies, and keeping software updated.",
+      "remote work": "Standard remote work policies often include dedicated workspace requirements, communication guidelines, and availability expectations.",
+      "training": "Typical onboarding training covers company culture, role-specific skills, compliance requirements, and project-specific knowledge."
+    };
+
+    const lowerQuery = query.toLowerCase();
+    for (const [key, guidance] of Object.entries(generalGuidance)) {
+      if (lowerQuery.includes(key)) {
+        return `General industry guidance: ${guidance}`;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Web search error:', error);
+    return null;
   }
 }

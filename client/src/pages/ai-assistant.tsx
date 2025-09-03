@@ -66,12 +66,19 @@ export default function AIAssistant() {
                       <li>• Security requirements and training</li>
                       <li>• Onboarding process guidance</li>
                       <li>• Remote work policies</li>
+                      <li>• General industry best practices</li>
                     </ul>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-foreground mb-2">Powered by:</h4>
+                    <h4 className="text-sm font-medium text-foreground mb-2">How I work:</h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      1. <strong>First</strong>: I search your uploaded documents for company-specific information
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      2. <strong>Then</strong>: If no relevant info is found, I provide general industry guidance
+                    </p>
                     <p className="text-sm text-muted-foreground">
-                      Open source Llama 3.1 model via Groq API with contextual knowledge from your company documents
+                      Powered by open source Llama 3.1 model with intelligent context prioritization
                     </p>
                   </div>
                 </CardContent>
