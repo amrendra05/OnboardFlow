@@ -16,7 +16,7 @@ interface ChatMessage {
 
 export default function ChatAssistant() {
   const [inputMessage, setInputMessage] = useState("");
-  const [selectedEmployeeId] = useState("demo-employee"); // In a real app, this would come from context
+  const [selectedEmployeeId] = useState("540dd7fe-a72e-4a86-a996-e61ee9eb10c9"); // John Smith's ID
   const queryClient = useQueryClient();
 
   const { data: messages = [] } = useQuery<ChatMessage[]>({

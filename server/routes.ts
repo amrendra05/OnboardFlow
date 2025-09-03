@@ -135,6 +135,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { message } = req.body;
       
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Message is required and must be a string" });
+      }
+      
       // Save user message
       const userMessage = await storage.createChatMessage({
         employeeId: req.params.id,
@@ -153,7 +157,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ userMessage, aiMessage });
     } catch (error) {
-      res.status(500).json({ error: "Failed to process chat message" });
+      console.error('Chat error:', error);
+      res.status(500).json({ 
+        error: "Failed to process chat message",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
