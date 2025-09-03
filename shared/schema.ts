@@ -1,0 +1,149 @@
+import { sql } from "drizzle-orm";
+import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+import { relations } from "drizzle-orm";
+
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  role: text("role").notNull().default("hr"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export const employees = pgTable("employees", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  department: text("department").notNull(),
+  position: text("position").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  status: text("status").notNull().default("active"),
+  avatarUrl: text("avatar_url"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+export const onboardingProgress = pgTable("onboarding_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull().references(() => employees.id),
+  stage: text("stage").notNull(), // pre-boarding, first-day, training, integration
+  completionPercentage: integer("completion_percentage").notNull().default(0),
+  tasks: jsonb("tasks").$type<{ id: string; name: string; completed: boolean; description?: string }[]>().notNull().default([]),
+  lastUpdated: timestamp("last_updated").default(sql`now()`),
+});
+
+export const documents = pgTable("documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  fileType: text("file_type").notNull(),
+  category: text("category").notNull(), // policies, projects, training
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  uploadedBy: varchar("uploaded_by").references(() => users.id),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").references(() => employees.id),
+  message: text("message").notNull(),
+  response: text("response"),
+  isFromAI: boolean("is_from_ai").notNull().default(false),
+  timestamp: timestamp("timestamp").default(sql`now()`),
+});
+
+export const knowledgeQueries = pgTable("knowledge_queries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  query: text("query").notNull(),
+  results: jsonb("results").$type<{ id: string; title: string; relevance: number; content: string }[]>().notNull().default([]),
+  employeeId: varchar("employee_id").references(() => employees.id),
+  timestamp: timestamp("timestamp").default(sql`now()`),
+});
+
+// Relations
+export const employeesRelations = relations(employees, ({ many }) => ({
+  onboardingProgress: many(onboardingProgress),
+  chatMessages: many(chatMessages),
+  knowledgeQueries: many(knowledgeQueries),
+}));
+
+export const onboardingProgressRelations = relations(onboardingProgress, ({ one }) => ({
+  employee: one(employees, {
+    fields: [onboardingProgress.employeeId],
+    references: [employees.id],
+  }),
+}));
+
+export const documentsRelations = relations(documents, ({ one }) => ({
+  uploadedBy: one(users, {
+    fields: [documents.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  employee: one(employees, {
+    fields: [chatMessages.employeeId],
+    references: [employees.id],
+  }),
+}));
+
+export const knowledgeQueriesRelations = relations(knowledgeQueries, ({ one }) => ({
+  employee: one(employees, {
+    fields: [knowledgeQueries.employeeId],
+    references: [employees.id],
+  }),
+}));
+
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertEmployeeSchema = createInsertSchema(employees).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOnboardingProgressSchema = createInsertSchema(onboardingProgress).omit({
+  id: true,
+  lastUpdated: true,
+});
+
+export const insertDocumentSchema = createInsertSchema(documents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertKnowledgeQuerySchema = createInsertSchema(knowledgeQueries).omit({
+  id: true,
+  timestamp: true,
+});
+
+// Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export type Employee = typeof employees.$inferSelect;
+export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
+
+export type OnboardingProgress = typeof onboardingProgress.$inferSelect;
+export type InsertOnboardingProgress = z.infer<typeof insertOnboardingProgressSchema>;
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export type KnowledgeQuery = typeof knowledgeQueries.$inferSelect;
+export type InsertKnowledgeQuery = z.infer<typeof insertKnowledgeQuerySchema>;
