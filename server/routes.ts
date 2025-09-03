@@ -142,8 +142,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isFromAI: false,
       });
 
-      // Generate AI response (simplified for now)
-      const aiResponse = generateAIResponse(message);
+      // Generate AI response using open source LLM
+      const aiResponse = await generateAIResponse(message, req.params.id);
       
       const aiMessage = await storage.createChatMessage({
         employeeId: req.params.id,
@@ -192,23 +192,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
   return httpServer;
 }
 
-// Simple AI response generator (in a real app, this would connect to an AI service)
-function generateAIResponse(message: string): string {
-  const responses = {
-    "setup": "To set up your development environment, you'll need to install Node.js, MongoDB, and your IDE. I can guide you through each step.",
-    "project": "Project Alpha uses a Node.js backend with MongoDB database. The technical documentation is available in the knowledge base.",
-    "security": "Security protocols require 2FA authentication and VPN access for remote work. Please check the Security Training module for complete guidelines.",
-    "policy": "Company policies are available in the Employee Handbook. Key policies include remote work guidelines, code of conduct, and data protection requirements.",
-    "training": "Your training schedule includes role-specific modules, project onboarding, and security certification. Would you like me to show your progress?",
-  };
-
-  const lowercaseMessage = message.toLowerCase();
-  
-  for (const [keyword, response] of Object.entries(responses)) {
-    if (lowercaseMessage.includes(keyword)) {
-      return response;
+// AI response generator using Groq open source LLM
+async function generateAIResponse(message: string, employeeId: string): Promise<string> {
+  try {
+    if (!process.env.GROQ_API_KEY) {
+      return "I'm currently unavailable. Please contact your HR representative for assistance.";
     }
-  }
 
-  return "I'm here to help with your onboarding questions. You can ask me about company policies, project setup, security protocols, or training requirements.";
+    // Search for relevant documents to provide context
+    const relevantDocs = await storage.searchDocuments(message);
+    
+    // Create context from relevant documents
+    const context = relevantDocs
+      .slice(0, 3)
+      .map(doc => `Document: ${doc.title}\nContent: ${doc.content.substring(0, 500)}...`)
+      .join("\n\n");
+
+    const systemPrompt = `You are an AI assistant for Cognizant's employee onboarding platform. You help new employees with onboarding questions, company policies, project information, and technical setup.
+
+Context from company documents:
+${context}
+
+Guidelines:
+- Be helpful, friendly, and professional
+- Provide specific, actionable advice
+- Reference company documents when relevant
+- If you don't know something, suggest they check the knowledge base or contact HR
+- Keep responses concise but informative`;
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-70b-versatile', // Fast, high-quality open source model
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Groq API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "I'm sorry, I couldn't process your request. Please try again or contact HR for assistance.";
+    
+  } catch (error) {
+    console.error('Error generating AI response:', error);
+    return "I'm experiencing technical difficulties. Please try again in a moment or contact your HR representative for immediate assistance.";
+  }
 }

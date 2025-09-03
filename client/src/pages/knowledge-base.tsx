@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { Document } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  const { data: documents = [] } = useQuery({
+  const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents", { search: searchQuery, category: selectedCategory === "all" ? undefined : selectedCategory }],
   });
 

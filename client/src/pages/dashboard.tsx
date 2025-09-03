@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { Employee, Document } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,15 +11,15 @@ import DocumentUpload from "@/components/document-upload";
 import OnboardingWorkflow from "@/components/onboarding-workflow";
 
 export default function Dashboard() {
-  const { data: employees = [] } = useQuery({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{ activeOnboarding: number; avgCompletionRate: number }>({
     queryKey: ["/api/onboarding/stats"],
   });
 
-  const { data: documents = [] } = useQuery({
+  const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
   });
 

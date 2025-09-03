@@ -36,10 +36,10 @@ export default function Sidebar() {
           const Icon = item.icon;
           return (
             <Link key={item.name} href={item.href}>
-              <a
+              <span
                 data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                 className={`
-                  flex items-center space-x-3 px-3 py-2 rounded-md transition-colors
+                  flex items-center space-x-3 px-3 py-2 rounded-md transition-colors cursor-pointer
                   ${
                     item.current
                       ? "bg-primary text-primary-foreground"
@@ -49,7 +49,7 @@ export default function Sidebar() {
               >
                 <Icon className="w-5 h-5" />
                 <span className={item.current ? "font-medium" : ""}>{item.name}</span>
-              </a>
+              </span>
             </Link>
           );
         })}
