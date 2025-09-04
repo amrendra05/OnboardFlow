@@ -235,9 +235,8 @@ export default function KnowledgeBase() {
       if (!response.ok) {
         const errorData = await response.json();
         toast({
-          title: "Download not available",
+          title: errorData.error || "Download not available",
           description: errorData.message || "This file cannot be downloaded at this time.",
-          variant: "destructive",
         });
         return;
       }
