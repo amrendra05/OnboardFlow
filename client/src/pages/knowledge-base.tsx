@@ -602,19 +602,13 @@ export default function KnowledgeBase() {
                           <div><strong>Category:</strong> {selectedDocument.category}</div>
                         </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-muted-foreground">
-                          💡 <strong>Note:</strong> This PDF contains document information from the knowledge base system.
-                        </p>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDownloadDocument(selectedDocument)}
-                          className="ml-4"
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Download PDF
-                        </Button>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">📄 Document Information</h5>
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                          <p><strong>Status:</strong> This is an uploaded PDF file stored in the knowledge base</p>
+                          <p><strong>Original File:</strong> {selectedDocument.title}.pdf</p>
+                          <p><strong>Purpose:</strong> Available for reference and knowledge sharing</p>
+                        </div>
                       </div>
                     </div>
                   ) : (
