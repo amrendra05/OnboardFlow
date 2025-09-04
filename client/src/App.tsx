@@ -8,6 +8,7 @@ import KnowledgeBase from "@/pages/knowledge-base";
 import NewEmployee from "@/pages/new-employee";
 import AIAssistant from "@/pages/ai-assistant";
 import OnboardingList from "@/pages/onboarding-list";
+import Analytics from "@/pages/analytics";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 
@@ -22,6 +23,7 @@ function Router() {
           <Route path="/new-employee" component={NewEmployee} />
           <Route path="/onboarding-list" component={OnboardingList} />
           <Route path="/ai-assistant" component={AIAssistant} />
+          <Route path="/analytics" component={Analytics} />
           <Route component={NotFound} />
         </Switch>
       </main>

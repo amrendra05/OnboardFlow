@@ -20,10 +20,15 @@ export default function OnboardingList() {
     queryKey: ["/api/employee-documents"],
   });
 
-  // Filter employees who are currently in onboarding (not 100% complete)
+  // Filter employees who are currently in onboarding (not completed)
   const onboardingEmployees = employees.filter(employee => {
+    // Include employees who either have incomplete progress or are newly created without progress
     const progress = employee.onboardingProgress?.[0];
-    return progress && progress.completionPercentage < 100;
+    if (!progress) {
+      // New employees without progress records are considered in onboarding
+      return employee.onboardingStage !== "Completed";
+    }
+    return progress.completionPercentage < 100;
   });
 
   const getEmployeeDocuments = (employeeId: string) => {
@@ -117,32 +122,31 @@ export default function OnboardingList() {
                         <p className="text-sm text-muted-foreground">{employee.position}</p>
                         <p className="text-xs text-muted-foreground">{employee.department}</p>
                       </div>
-                      {progress && (
-                        <Badge className={getStageColor(progress.stage)} data-testid={`stage-${employee.id}`}>
-                          {formatStage(progress.stage)}
-                        </Badge>
-                      )}
+                      <Badge 
+                        className={getStageColor(progress?.stage || employee.onboardingStage)} 
+                        data-testid={`stage-${employee.id}`}
+                      >
+                        {formatStage(progress?.stage || employee.onboardingStage)}
+                      </Badge>
                     </div>
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
                     {/* Progress Bar */}
-                    {progress && (
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-foreground">Progress</span>
-                          <span className="text-sm text-muted-foreground" data-testid={`progress-${employee.id}`}>
-                            {progress.completionPercentage}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all duration-300" 
-                            style={{ width: `${progress.completionPercentage}%` }}
-                          ></div>
-                        </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-foreground">Progress</span>
+                        <span className="text-sm text-muted-foreground" data-testid={`progress-${employee.id}`}>
+                          {progress?.completionPercentage || 0}%
+                        </span>
                       </div>
-                    )}
+                      <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${progress?.completionPercentage || 0}%` }}
+                        ></div>
+                      </div>
+                    </div>
 
                     {/* Start Date */}
                     <div className="flex items-center space-x-2 text-sm text-muted-foreground">

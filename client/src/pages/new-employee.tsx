@@ -369,32 +369,32 @@ export default function NewEmployee() {
                       <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                       <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">
-                          Drag files here or click to browse
+                          Click the button below to upload files
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Supports: PDF, DOC, DOCX, JPG, PNG, TXT (max 10MB each)
                         </p>
                       </div>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
-                        onChange={handleFileUpload}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        data-testid="input-file-upload"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="mt-4"
-                        onClick={() => {
-                          const input = document.querySelector('[data-testid="input-file-upload"]') as HTMLInputElement;
-                          input?.click();
-                        }}
-                        data-testid="button-browse-files"
-                      >
-                        Browse Files
-                      </Button>
+                      <div className="mt-4">
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          id="file-upload-input"
+                          data-testid="input-file-upload"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          asChild
+                        >
+                          <label htmlFor="file-upload-input" className="cursor-pointer" data-testid="button-browse-files">
+                            Browse Files
+                          </label>
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Uploaded Files List */}
