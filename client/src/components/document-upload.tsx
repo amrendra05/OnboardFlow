@@ -97,20 +97,18 @@ export default function DocumentUpload() {
       // Debug logging for file type detection
       console.log(`File: ${file.name}, Extension: ${fileExtension}, MIME: ${file.type}, Valid Extension: ${isValidExtension}, Valid MIME: ${isValidMimeType}`);
       
-      // Special handling: Always allow ODP files regardless of MIME type detection
-      const isOdpFile = fileExtension === '.odp';
-      if (isOdpFile || isValidExtension || isValidMimeType) {
-        if (isOdpFile) {
-          console.log(`Allowing ODP file via file picker: ${file.name}`);
-        }
-      } else {
+      // Always allow these specific extensions regardless of MIME type
+      const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+      if (!allowedExtensions.includes(fileExtension)) {
         toast({
           title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files. Debug: Extension=${fileExtension}, MIME=${file.type}`,
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
           variant: "destructive",
         });
         return;
       }
+      
+      console.log(`Allowing file: ${file.name} with extension: ${fileExtension}`);
       
       if (file.size > 10 * 1024 * 1024) {
         toast({
@@ -146,20 +144,18 @@ export default function DocumentUpload() {
       // Debug logging for drag-and-drop
       console.log(`Drag-and-Drop File: ${file.name}, Extension: ${fileExtension}, MIME: ${file.type}, Valid Extension: ${isValidExtension}, Valid MIME: ${isValidMimeType}`);
       
-      // Special handling: Always allow ODP files regardless of MIME type detection
-      const isOdpFile = fileExtension === '.odp';
-      if (isOdpFile || isValidExtension || isValidMimeType) {
-        if (isOdpFile) {
-          console.log(`Allowing ODP file via drag-and-drop: ${file.name}`);
-        }
-      } else {
+      // Always allow these specific extensions regardless of MIME type
+      const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+      if (!allowedExtensions.includes(fileExtension)) {
         toast({
           title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files. Debug: Extension=${fileExtension}, MIME=${file.type}`,
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
           variant: "destructive",
         });
         return;
       }
+      
+      console.log(`Allowing drag-and-drop file: ${file.name} with extension: ${fileExtension}`);
       
       if (file.size > 10 * 1024 * 1024) {
         toast({
@@ -204,7 +200,6 @@ export default function DocumentUpload() {
             id="file-input"
             type="file"
             multiple
-            accept="*"
             onChange={handleFileSelect}
             className="hidden"
           />
