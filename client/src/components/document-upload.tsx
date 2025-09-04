@@ -97,10 +97,14 @@ export default function DocumentUpload() {
       // Debug logging for file type detection
       console.log(`File: ${file.name}, Extension: ${fileExtension}, MIME: ${file.type}, Valid Extension: ${isValidExtension}, Valid MIME: ${isValidMimeType}`);
       
-      if (!isValidExtension && !isValidMimeType) {
+      // For ODP files, be more lenient since browsers may not recognize the MIME type
+      if (fileExtension === '.odp') {
+        // Always allow ODP files regardless of MIME type
+        console.log(`Allowing ODP file: ${file.name}`);
+      } else if (!isValidExtension && !isValidMimeType) {
         toast({
           title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files. Debug: Extension=${fileExtension}, MIME=${file.type}`,
           variant: "destructive",
         });
         return;
@@ -137,10 +141,14 @@ export default function DocumentUpload() {
       const isValidExtension = allowedExtensions.includes(fileExtension);
       const isValidMimeType = allowedMimeTypes.includes(file.type);
       
-      if (!isValidExtension && !isValidMimeType) {
+      // For ODP files, be more lenient since browsers may not recognize the MIME type
+      if (fileExtension === '.odp') {
+        // Always allow ODP files regardless of MIME type
+        console.log(`Allowing ODP file: ${file.name}`);
+      } else if (!isValidExtension && !isValidMimeType) {
         toast({
           title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files. Debug: Extension=${fileExtension}, MIME=${file.type}`,
           variant: "destructive",
         });
         return;
