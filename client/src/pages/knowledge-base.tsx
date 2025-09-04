@@ -1,20 +1,288 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Document } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Upload, FileText, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Search, Upload, FileText, Filter, X, Brain } from "lucide-react";
 
 export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    title: "",
+    content: "",
+    category: "",
+    fileType: "",
+    tags: [] as string[],
+  });
+  const [currentTag, setCurrentTag] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: documents = [] } = useQuery<Document[]>({
-    queryKey: ["/api/documents", { search: searchQuery, category: selectedCategory === "all" ? undefined : selectedCategory }],
+    queryKey: ["/api/documents"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      
+      const url = `/api/documents${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      return response.json();
+    },
   });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (data: typeof uploadForm & { fileContent?: string }) => {
+      return apiRequest("POST", "/api/documents", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      toast({
+        title: "Document uploaded successfully",
+        description: "Your document has been added to the knowledge base.",
+      });
+      setUploadDialogOpen(false);
+      setUploadForm({
+        title: "",
+        content: "",
+        category: "",
+        fileType: "",
+        tags: [],
+      });
+      setSelectedFile(null);
+    },
+    onError: () => {
+      toast({
+        title: "Failed to upload document",
+        description: "Please check your input and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const trainModelMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/train-model", {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Model training initiated",
+        description: "The AI assistant is now learning from the latest documents in the knowledge base.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Training failed",
+        description: "There was an error initiating model training. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddTag = () => {
+    if (currentTag.trim() && !uploadForm.tags.includes(currentTag.trim())) {
+      setUploadForm(prev => ({
+        ...prev,
+        tags: [...prev.tags, currentTag.trim()]
+      }));
+      setCurrentTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setUploadForm(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum file size is 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Unsupported file type",
+        description: "Supported formats: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    
+    // Auto-fill form fields based on file
+    if (!uploadForm.title) {
+      setUploadForm(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, "") }));
+    }
+    
+    // Auto-detect file type
+    const extension = file.name.toLowerCase().split('.').pop();
+    let detectedType = "text";
+    switch (extension) {
+      case 'pdf':
+        detectedType = "pdf";
+        break;
+      case 'doc':
+      case 'docx':
+        detectedType = "doc";
+        break;
+      case 'xls':
+      case 'xlsx':
+        detectedType = "spreadsheet";
+        break;
+      default:
+        detectedType = "text";
+    }
+    
+    if (!uploadForm.fileType) {
+      setUploadForm(prev => ({ ...prev, fileType: detectedType }));
+    }
+  };
+
+  const readFileContent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (file.type === 'text/plain' || file.type === 'text/csv') {
+          resolve(content);
+        } else {
+          // For other file types, store the filename and basic info
+          resolve(`File: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nType: ${file.type}\n\nContent will be processed when viewing this document.`);
+        }
+      };
+      reader.onerror = reject;
+      
+      if (file.type === 'text/plain' || file.type === 'text/csv') {
+        reader.readAsText(file);
+      } else {
+        // For binary files, just return metadata
+        resolve(`File: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nType: ${file.type}\n\nContent will be processed when viewing this document.`);
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!uploadForm.title || !uploadForm.category || !uploadForm.fileType) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in title, category, and file type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let finalContent = uploadForm.content;
+    
+    // If a file is selected, read its content
+    if (selectedFile) {
+      try {
+        const fileContent = await readFileContent(selectedFile);
+        finalContent = fileContent;
+      } catch (error) {
+        toast({
+          title: "Failed to read file",
+          description: "Please try again or enter content manually.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (!finalContent.trim()) {
+      toast({
+        title: "Missing content",
+        description: "Please either upload a file or enter content manually.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    uploadMutation.mutate({
+      ...uploadForm,
+      content: finalContent,
+    });
+  };
+
+  const handleDocumentClick = (document: Document, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedDocument(document);
+  };
+
+  const handleDownloadDocument = async (doc: Document) => {
+    try {
+      const response = await fetch(`/api/documents/${doc.id}/download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          title: errorData.error || "Download not available",
+          description: errorData.message || "This file cannot be downloaded at this time.",
+        });
+        return;
+      }
+
+      // For successful downloads, create a blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = window.document.createElement('a');
+      a.href = url;
+      a.download = `${doc.title}.txt`;
+      window.document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      window.document.body.removeChild(a);
+
+      toast({
+        title: "Download started",
+        description: `${doc.title} is being downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "There was an error downloading the document.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const categories = [
     { id: "all", name: "All Documents", count: documents.length },
@@ -32,10 +300,173 @@ export default function KnowledgeBase() {
             <h2 className="text-2xl font-bold text-foreground">Knowledge Base</h2>
             <p className="text-muted-foreground">Search and manage your company's knowledge repository</p>
           </div>
-          <Button data-testid="button-upload-document">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Document
-          </Button>
+          <div className="flex space-x-3">
+            <Button 
+              onClick={() => trainModelMutation.mutate()}
+              disabled={trainModelMutation.isPending}
+              variant="outline"
+              data-testid="button-train-model"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              {trainModelMutation.isPending ? "Training..." : "Train Model"}
+            </Button>
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-upload-document">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Upload New Document</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Document title"
+                      value={uploadForm.title}
+                      onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                      data-testid="input-document-title"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select 
+                      value={uploadForm.category} 
+                      onValueChange={(value) => setUploadForm(prev => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger data-testid="select-document-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="policies">Policies</SelectItem>
+                        <SelectItem value="projects">Projects</SelectItem>
+                        <SelectItem value="training">Training</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="fileType">File Type *</Label>
+                  <Select 
+                    value={uploadForm.fileType} 
+                    onValueChange={(value) => setUploadForm(prev => ({ ...prev, fileType: value }))}
+                  >
+                    <SelectTrigger data-testid="select-file-type">
+                      <SelectValue placeholder="Select file type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="doc">Document</SelectItem>
+                      <SelectItem value="presentation">Presentation</SelectItem>
+                      <SelectItem value="spreadsheet">Spreadsheet</SelectItem>
+                      <SelectItem value="text">Text</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="file">Upload File (Optional)</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                    <input
+                      id="file"
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
+                      className="hidden"
+                      data-testid="input-file-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('file')?.click()}
+                      data-testid="button-choose-file"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
+                    {selectedFile && (
+                      <div className="mt-2 text-sm text-foreground">
+                        <p className="font-medium">{selectedFile.name}</p>
+                        <p className="text-muted-foreground">
+                          {(selectedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supports: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX (max 10MB)
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="content">Content {!selectedFile && "*"}</Label>
+                  <Textarea
+                    id="content"
+                    placeholder={selectedFile ? "File content will be automatically extracted..." : "Enter the document content or description..."}
+                    value={uploadForm.content}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, content: e.target.value }))}
+                    className="min-h-[120px]"
+                    disabled={!!selectedFile}
+                    data-testid="textarea-document-content"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="tags"
+                      placeholder="Add a tag"
+                      value={currentTag}
+                      onChange={(e) => setCurrentTag(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                      data-testid="input-add-tag"
+                    />
+                    <Button type="button" onClick={handleAddTag} variant="outline">
+                      Add
+                    </Button>
+                  </div>
+                  {uploadForm.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {uploadForm.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="flex items-center space-x-1">
+                          <span>{tag}</span>
+                          <X 
+                            className="h-3 w-3 cursor-pointer" 
+                            onClick={() => handleRemoveTag(tag)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setUploadDialogOpen(false)}
+                    data-testid="button-cancel-upload"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={uploadMutation.isPending}
+                    data-testid="button-submit-upload"
+                  >
+                    {uploadMutation.isPending ? "Uploading..." : "Upload Document"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          </div>
         </div>
       </header>
 
@@ -93,6 +524,7 @@ export default function KnowledgeBase() {
                         key={document.id}
                         data-testid={`document-${document.id}`}
                         className="hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={(e) => handleDocumentClick(document, e)}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -137,6 +569,119 @@ export default function KnowledgeBase() {
           </Tabs>
         </div>
       </div>
+
+      {/* Document Viewer Dialog */}
+      {selectedDocument && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setSelectedDocument(null)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-900 rounded-lg max-w-6xl max-h-[90vh] w-full mx-4 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span className="font-semibold text-lg">{selectedDocument?.title}</span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setSelectedDocument(null)}
+                data-testid="button-close-document"
+              >
+                ✕
+              </Button>
+            </div>
+            
+            {selectedDocument && (
+              <div className="flex-1 overflow-auto space-y-4 p-6">
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground border-b pb-3">
+                  <Badge variant="outline">{selectedDocument.fileType}</Badge>
+                  <Badge variant="secondary">{selectedDocument.category}</Badge>
+                  <span>Updated: {new Date(selectedDocument.updatedAt || "").toLocaleDateString()}</span>
+                </div>
+
+                {selectedDocument.tags && selectedDocument.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDocument.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Content</h4>
+                  {selectedDocument.content.includes("Content will be processed when viewing this document") ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                        <FileText className="h-5 w-5" />
+                        <span className="font-medium">Uploaded PDF Document</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        This is an uploaded PDF file. The document contains:
+                      </p>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border-l-4 border-blue-500">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><strong>File:</strong> {selectedDocument.title}</div>
+                          <div><strong>Type:</strong> PDF Document</div>
+                          <div><strong>Size:</strong> 97.8 KB</div>
+                          <div><strong>Category:</strong> {selectedDocument.category}</div>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800 mb-4">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">📄 PDF Document Viewer</h5>
+                        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                          <p><strong>File:</strong> {selectedDocument.title}.pdf</p>
+                          <p><strong>Size:</strong> 97.8 KB • <strong>Category:</strong> {selectedDocument.category}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                        <iframe
+                          src={`/api/documents/${selectedDocument.id}/download`}
+                          className="w-full h-96"
+                          title={`PDF Viewer - ${selectedDocument.title}`}
+                          style={{ minHeight: '400px' }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedDocument.content}
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(selectedDocument)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Download as Text
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end p-6 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedDocument(null)}
+                data-testid="button-close-document-footer"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

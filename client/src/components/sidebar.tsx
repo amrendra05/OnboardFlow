@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Brain, BarChart3, Users, Book, Bot, Settings, MoreVertical } from "lucide-react";
+import { Brain, BarChart3, Users, Book, Bot, Settings, MoreVertical, UserCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,7 @@ export default function Sidebar() {
   const navigation = [
     { name: "Dashboard", href: "/", icon: BarChart3, current: location === "/" },
     { name: "New Employee", href: "/new-employee", icon: Users, current: location === "/new-employee" },
+    { name: "Onboarding List", href: "/onboarding-list", icon: UserCheck, current: location === "/onboarding-list" },
     { name: "Knowledge Base", href: "/knowledge-base", icon: Book, current: location === "/knowledge-base" },
     { name: "AI Assistant", href: "/ai-assistant", icon: Bot, current: location === "/ai-assistant" },
     { name: "Analytics", href: "/analytics", icon: BarChart3, current: location === "/analytics" },

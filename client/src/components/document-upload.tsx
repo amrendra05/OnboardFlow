@@ -79,7 +79,20 @@ export default function DocumentUpload() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    
     files.forEach((file) => {
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      
+      if (!allowedExtensions.includes(fileExtension)) {
+        toast({
+          title: "File type not supported",
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -88,6 +101,7 @@ export default function DocumentUpload() {
         });
         return;
       }
+      
       uploadMutation.mutate(file);
     });
     e.target.value = "";
@@ -96,7 +110,31 @@ export default function DocumentUpload() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
-    files.forEach((file) => uploadMutation.mutate(file));
+    const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    
+    files.forEach((file) => {
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      
+      if (!allowedExtensions.includes(fileExtension)) {
+        toast({
+          title: "File type not supported",
+          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is larger than 10MB. Please choose a smaller file.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      uploadMutation.mutate(file);
+    });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -122,7 +160,7 @@ export default function DocumentUpload() {
         >
           <CloudUpload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-lg font-medium text-foreground mb-2">Drop files here or click to upload</p>
-          <p className="text-sm text-muted-foreground">Support for PDF, DOCX, PPTX, and TXT files</p>
+          <p className="text-sm text-muted-foreground">Support for PDF, DOCX, PPTX, PPT, ODP, and TXT files</p>
           <Button className="mt-4" data-testid="button-select-files">
             Select Files
           </Button>
@@ -130,7 +168,6 @@ export default function DocumentUpload() {
             id="file-input"
             type="file"
             multiple
-            accept=".pdf,.docx,.pptx,.txt"
             onChange={handleFileSelect}
             className="hidden"
           />
