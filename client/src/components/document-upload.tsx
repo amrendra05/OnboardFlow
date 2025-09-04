@@ -204,7 +204,7 @@ export default function DocumentUpload() {
             id="file-input"
             type="file"
             multiple
-            accept=".pdf,.docx,.pptx,.ppt,.odp,.txt,application/vnd.oasis.opendocument.presentation"
+            accept="*"
             onChange={handleFileSelect}
             className="hidden"
           />
