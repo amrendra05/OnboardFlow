@@ -417,7 +417,9 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
     }
 
     // Step 1: Search company knowledge base first
+    console.log(`Searching knowledge base for: "${message}"`);
     const relevantDocs = await storage.searchDocuments(message);
+    console.log(`Search returned ${relevantDocs.length} documents`);
     
     let context = "";
     let hasRelevantKnowledge = false;
