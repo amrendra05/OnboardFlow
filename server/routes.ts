@@ -39,8 +39,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       console.log('Transformed employee data:', transformedData);
+      console.log('About to validate with schema...');
       const data = insertEmployeeSchema.parse(transformedData);
-      console.log('Parsed employee data:', data);
+      console.log('Validation successful! Parsed employee data:', data);
       const employee = await storage.createEmployee(data);
       
       // Create initial onboarding progress
