@@ -423,12 +423,8 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
     let hasRelevantKnowledge = false;
     
     if (relevantDocs.length > 0) {
-      // More comprehensive relevance check
-      const queryWords = message.toLowerCase().split(' ').filter(word => word.length > 2);
-      hasRelevantKnowledge = relevantDocs.some(doc => {
-        const docText = (doc.title + ' ' + doc.content).toLowerCase();
-        return queryWords.some(word => docText.includes(word));
-      });
+      // Always use knowledge base documents when found - they are company-specific and authoritative
+      hasRelevantKnowledge = true;
       
       // Include more content from relevant documents
       context = relevantDocs
@@ -440,6 +436,9 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
           return `Document: "${doc.title}"\nCategory: ${doc.category}\nContent: ${content}`;
         })
         .join("\n\n---\n\n");
+      
+      console.log(`Found ${relevantDocs.length} relevant documents for query: "${message}"`);
+      console.log(`Using documents: ${relevantDocs.map(d => d.title).join(', ')}`);
     }
 
     // Step 2: If no relevant knowledge base content, search the web
@@ -497,15 +496,17 @@ You must always adhere to the following ethical principles:
    - Direct complex issues to human HR representatives
    - Acknowledge and learn from mistakes
 
-${context ? `Context from ${hasRelevantKnowledge ? 'company documents' : 'company documents and web search'}:
+${context ? `COMPANY KNOWLEDGE BASE CONTEXT:
 ${context}
 
-INSTRUCTIONS:
-- Use the company documents as your PRIMARY source of information
-- Quote directly from the documents when relevant
-- Reference specific document titles when citing information
-- If the documents contain the answer, use them instead of general knowledge
+CRITICAL INSTRUCTIONS:
+- ALWAYS prioritize and use the company documents above as your PRIMARY and AUTHORITATIVE source
+- These documents contain Cognizant's official policies, procedures, and guidelines
+- Quote directly from these documents when relevant
+- Reference specific document titles when citing information (e.g., "According to the Employee Handbook 2025...")
+- If these documents contain the answer, use them INSTEAD of any general knowledge
 - Be specific about which document contains the information
+- NEVER ignore or override information from these company documents
 - Keep responses informative but concise
 - Always apply the Code of Ethics above in your responses` : `No specific company documents found for this question.
 

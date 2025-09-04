@@ -171,22 +171,49 @@ export class DatabaseStorage implements IStorage {
     const keywords = query.toLowerCase().split(' ').filter(word => word.length > 2);
     
     if (keywords.length === 0) {
-      return [];
+      // If no keywords, return some recent documents to provide context
+      return await db
+        .select()
+        .from(documents)
+        .orderBy(desc(documents.updatedAt))
+        .limit(3);
     }
 
-    // Build search conditions for each keyword
+    // Build search conditions for each keyword - use case-insensitive search
     const searchConditions = keywords.map(keyword => 
       or(
-        like(documents.title, `%${keyword}%`),
-        like(documents.content, `%${keyword}%`)
+        sql`LOWER(${documents.title}) LIKE LOWER(${`%${keyword}%`})`,
+        sql`LOWER(${documents.content}) LIKE LOWER(${`%${keyword}%`})`,
+        sql`LOWER(${documents.category}) LIKE LOWER(${`%${keyword}%`})`
       )
     );
 
-    return await db
+    const results = await db
       .select()
       .from(documents)
       .where(or(...searchConditions))
       .orderBy(desc(documents.updatedAt));
+
+    // If no exact matches, try broader search with shorter keywords
+    if (results.length === 0 && keywords.length > 0) {
+      const broaderKeywords = query.toLowerCase().split(' ').filter(word => word.length > 1);
+      const broaderConditions = broaderKeywords.map(keyword => 
+        or(
+          sql`LOWER(${documents.title}) LIKE LOWER(${`%${keyword}%`})`,
+          sql`LOWER(${documents.content}) LIKE LOWER(${`%${keyword}%`})`,
+          sql`LOWER(${documents.category}) LIKE LOWER(${`%${keyword}%`})`
+        )
+      );
+
+      return await db
+        .select()
+        .from(documents)
+        .where(or(...broaderConditions))
+        .orderBy(desc(documents.updatedAt))
+        .limit(5);
+    }
+
+    return results;
   }
 
   async getChatMessages(employeeId: string): Promise<ChatMessage[]> {
