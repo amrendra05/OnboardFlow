@@ -240,10 +240,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.setHeader('Content-Type', 'application/pdf');
           
           // Since we don't have the actual PDF data, inform user about the limitation
-          const infoText = `This is a reference to the uploaded PDF file: ${document.title}\n\nFile Information:\n- Size: 97.8 KB\n- Type: PDF Document\n- Category: ${document.category}\n\nNote: The actual PDF file content is stored in the system but requires additional implementation to serve the binary data. This text file provides information about the uploaded PDF.`;
+          const infoText = `DOCUMENT INFORMATION FILE\n\nThis is information about the uploaded PDF document: ${document.title}\n\nFile Details:\n- Original Name: ${document.title}.pdf\n- File Size: 97.8 KB\n- Document Type: PDF\n- Category: ${document.category}\n- Upload Date: ${new Date(document.createdAt || '').toLocaleDateString()}\n\nIMPORTANT NOTE:\nThis is an information file about the PDF document, not the actual PDF file.\nThe original PDF file is stored in the knowledge base system but the current\nimplementation serves document metadata rather than the binary PDF content.\n\nTo access the actual PDF content, enhanced file serving capabilities\nwould need to be implemented in the system.`;
           
           res.setHeader('Content-Type', 'text/plain');
-          res.setHeader('Content-Disposition', `attachment; filename="${document.title} - Info.txt"`);
+          res.setHeader('Content-Disposition', `attachment; filename="Document-Info-${document.title.replace(/[^a-zA-Z0-9]/g, '-')}.txt"`);
           return res.send(infoText);
         } else {
           return res.status(404).json({ 

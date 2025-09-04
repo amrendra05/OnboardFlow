@@ -604,7 +604,7 @@ export default function KnowledgeBase() {
                       </div>
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground">
-                          💡 <strong>Note:</strong> This is an uploaded PDF file. Click download to get more information about accessing the file.
+                          💡 <strong>Note:</strong> This is an uploaded PDF file. The download provides document information as a text file.
                         </p>
                         <Button
                           variant="outline"
@@ -613,7 +613,7 @@ export default function KnowledgeBase() {
                           className="ml-4"
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          Download PDF Info
+                          Download Info (.txt)
                         </Button>
                       </div>
                     </div>
