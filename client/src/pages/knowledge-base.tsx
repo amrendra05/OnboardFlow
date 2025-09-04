@@ -228,9 +228,9 @@ export default function KnowledgeBase() {
     setSelectedDocument(document);
   };
 
-  const handleDownloadDocument = async (document: Document) => {
+  const handleDownloadDocument = async (doc: Document) => {
     try {
-      const response = await fetch(`/api/documents/${document.id}/download`);
+      const response = await fetch(`/api/documents/${doc.id}/download`);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -245,17 +245,17 @@ export default function KnowledgeBase() {
       // For successful downloads, create a blob and download
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
-      a.download = `${document.title}.txt`;
-      document.body.appendChild(a);
+      a.download = `${doc.title}.txt`;
+      window.document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
 
       toast({
         title: "Download started",
-        description: `${document.title} is being downloaded.`,
+        description: `${doc.title} is being downloaded.`,
       });
     } catch (error) {
       toast({

@@ -149,6 +149,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(documents).orderBy(desc(documents.updatedAt));
   }
 
+  async getDocument(id: string): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
+  }
+
   async getDocumentsByCategory(category: string): Promise<Document[]> {
     return await db.select().from(documents).where(eq(documents.category, category));
   }
