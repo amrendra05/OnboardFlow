@@ -27,7 +27,6 @@ export default function KnowledgeBase() {
   });
   const [currentTag, setCurrentTag] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   
   const queryClient = useQueryClient();
@@ -226,11 +225,7 @@ export default function KnowledgeBase() {
   const handleDocumentClick = (document: Document, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    console.log('Document clicked:', document.title);
-    console.log('Current viewDialogOpen state:', viewDialogOpen);
-    console.log('Setting dialog open to true');
     setSelectedDocument(document);
-    setViewDialogOpen(true);
   };
 
   const categories = [
@@ -434,18 +429,6 @@ export default function KnowledgeBase() {
             </CardContent>
           </Card>
 
-          {/* Debug button */}
-          <Button 
-            onClick={() => {
-              console.log('Test button clicked');
-              setSelectedDocument(documents[0]);
-              setViewDialogOpen(true);
-            }}
-            className="mb-4"
-          >
-            Test Modal (Debug)
-          </Button>
-
           {/* Categories and Results */}
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList className="grid w-full grid-cols-4">
@@ -521,11 +504,10 @@ export default function KnowledgeBase() {
       </div>
 
       {/* Document Viewer Dialog */}
-      {console.log('Rendering modal - viewDialogOpen:', viewDialogOpen)}
-      {viewDialogOpen && (
+      {selectedDocument && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setViewDialogOpen(false)}
+          onClick={() => setSelectedDocument(null)}
         >
           <div 
             className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col"
@@ -539,7 +521,7 @@ export default function KnowledgeBase() {
               <Button 
                 variant="ghost" 
                 size="sm"
-                onClick={() => setViewDialogOpen(false)}
+                onClick={() => setSelectedDocument(null)}
                 data-testid="button-close-document"
               >
                 ✕
@@ -576,7 +558,7 @@ export default function KnowledgeBase() {
             <div className="flex justify-end p-6 border-t">
               <Button 
                 variant="outline" 
-                onClick={() => setViewDialogOpen(false)}
+                onClick={() => setSelectedDocument(null)}
                 data-testid="button-close-document-footer"
               >
                 Close
