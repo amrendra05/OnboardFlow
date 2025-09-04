@@ -165,6 +165,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Employee document upload route
+  app.post("/api/employees/:id/documents", async (req, res) => {
+    try {
+      const { fileName, fileType, fileSize, mimeType, fileData } = req.body;
+      
+      if (!fileName || !fileType || !fileSize || !mimeType || !fileData) {
+        return res.status(400).json({ error: "All document fields are required" });
+      }
+
+      const document = await storage.createEmployeeDocument({
+        employeeId: req.params.id,
+        fileName,
+        fileType,
+        fileSize,
+        mimeType,
+        fileData,
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error('Document upload error:', error);
+      res.status(500).json({ error: "Failed to upload document" });
+    }
+  });
+
+  // Get employee documents route
+  app.get("/api/employees/:id/documents", async (req, res) => {
+    try {
+      const documents = await storage.getEmployeeDocuments(req.params.id);
+      res.json(documents);
+    } catch (error) {
+      console.error('Get documents error:', error);
+      res.status(500).json({ error: "Failed to get documents" });
+    }
+  });
+
   // Knowledge search route
   app.post("/api/knowledge/search", async (req, res) => {
     try {

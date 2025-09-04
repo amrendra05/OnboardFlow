@@ -5,6 +5,7 @@ import {
   documents,
   chatMessages,
   knowledgeQueries,
+  employeeDocuments,
   type User,
   type InsertUser,
   type Employee,
@@ -17,6 +18,8 @@ import {
   type InsertChatMessage,
   type KnowledgeQuery,
   type InsertKnowledgeQuery,
+  type EmployeeDocument,
+  type InsertEmployeeDocument,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, like, or, sql } from "drizzle-orm";
@@ -52,6 +55,10 @@ export interface IStorage {
   // Knowledge queries
   createKnowledgeQuery(query: InsertKnowledgeQuery): Promise<KnowledgeQuery>;
   getRecentQueries(limit?: number): Promise<KnowledgeQuery[]>;
+
+  // Employee documents
+  createEmployeeDocument(document: InsertEmployeeDocument): Promise<EmployeeDocument>;
+  getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -193,6 +200,19 @@ export class DatabaseStorage implements IStorage {
       .from(knowledgeQueries)
       .orderBy(desc(knowledgeQueries.timestamp))
       .limit(limit);
+  }
+
+  async createEmployeeDocument(insertDocument: InsertEmployeeDocument): Promise<EmployeeDocument> {
+    const [document] = await db.insert(employeeDocuments).values(insertDocument).returning();
+    return document;
+  }
+
+  async getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]> {
+    return await db
+      .select()
+      .from(employeeDocuments)
+      .where(eq(employeeDocuments.employeeId, employeeId))
+      .orderBy(desc(employeeDocuments.uploadedAt));
   }
 }
 

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, UserPlus } from "lucide-react";
+import { CalendarIcon, UserPlus, Upload, FileText, X } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -24,8 +24,16 @@ const formSchema = insertEmployeeSchema.extend({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface UploadedFile {
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+}
+
 export default function NewEmployee() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -40,13 +48,65 @@ export default function NewEmployee() {
     },
   });
 
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:application/pdf;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  // Helper function to determine file type
+  const getFileType = (fileName: string): string => {
+    const extension = fileName.toLowerCase().split('.').pop();
+    switch (extension) {
+      case 'pdf':
+        return 'resume';
+      case 'doc':
+      case 'docx':
+        return 'document';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return 'photo';
+      case 'txt':
+        return 'text';
+      default:
+        return 'other';
+    }
+  };
+
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest("POST", "/api/employees", {
+      // First create the employee
+      const employeeResponse = await apiRequest("POST", "/api/employees", {
         ...data,
         startDate: data.startDate.toISOString(),
       });
-      return response.json();
+      const employee = await employeeResponse.json();
+
+      // Then upload any documents if present
+      if (uploadedFiles.length > 0) {
+        for (const uploadedFile of uploadedFiles) {
+          const base64Data = await fileToBase64(uploadedFile.file);
+          await apiRequest("POST", `/api/employees/${employee.id}/documents`, {
+            fileName: uploadedFile.name,
+            fileType: getFileType(uploadedFile.name),
+            fileSize: uploadedFile.size,
+            mimeType: uploadedFile.file.type,
+            fileData: base64Data,
+          });
+        }
+      }
+
+      return employee;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
@@ -55,6 +115,7 @@ export default function NewEmployee() {
         description: `${data.name} has been added to the onboarding system.`,
       });
       form.reset();
+      setUploadedFiles([]);
     },
     onError: (error) => {
       toast({
@@ -67,6 +128,68 @@ export default function NewEmployee() {
 
   const onSubmit = (data: FormData) => {
     createEmployeeMutation.mutate(data);
+  };
+
+  // File upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${file.name} is too large. Maximum size is 10MB.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'text/plain'
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "File type not supported",
+          description: `${file.name} is not a supported file type. Please upload PDF, DOC, DOCX, JPG, PNG, or TXT files.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add to uploaded files
+      const uploadedFile: UploadedFile = {
+        file,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      };
+
+      setUploadedFiles(prev => [...prev, uploadedFile]);
+    });
+
+    // Reset the input
+    event.target.value = '';
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const departments = [
@@ -231,6 +354,81 @@ export default function NewEmployee() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Document Upload Section */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-foreground mb-2">Documents (Optional)</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Upload resume, certificates, or other relevant documents for the new employee.
+                      </p>
+                    </div>
+
+                    {/* File Upload Button */}
+                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                      <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Drag files here or click to browse
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Supports: PDF, DOC, DOCX, JPG, PNG, TXT (max 10MB each)
+                        </p>
+                      </div>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt"
+                        onChange={handleFileUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        data-testid="input-file-upload"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => {
+                          const input = document.querySelector('[data-testid="input-file-upload"]') as HTMLInputElement;
+                          input?.click();
+                        }}
+                        data-testid="button-browse-files"
+                      >
+                        Browse Files
+                      </Button>
+                    </div>
+
+                    {/* Uploaded Files List */}
+                    {uploadedFiles.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium text-foreground">Uploaded Files</h4>
+                        {uploadedFiles.map((file, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <FileText className="h-5 w-5 text-primary" />
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{file.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatFileSize(file.size)} • {getFileType(file.name)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                              data-testid={`button-remove-file-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   {/* Submit Button */}
                   <div className="flex justify-end space-x-4">

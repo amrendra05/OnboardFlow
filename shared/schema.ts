@@ -62,11 +62,23 @@ export const knowledgeQueries = pgTable("knowledge_queries", {
   timestamp: timestamp("timestamp").default(sql`now()`),
 });
 
+export const employeeDocuments = pgTable("employee_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  employeeId: varchar("employee_id").notNull().references(() => employees.id),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(), // resume, certificate, id_document, etc.
+  fileSize: integer("file_size").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileData: text("file_data").notNull(), // Base64 encoded file data for simplicity
+  uploadedAt: timestamp("uploaded_at").default(sql`now()`),
+});
+
 // Relations
 export const employeesRelations = relations(employees, ({ many }) => ({
   onboardingProgress: many(onboardingProgress),
   chatMessages: many(chatMessages),
   knowledgeQueries: many(knowledgeQueries),
+  documents: many(employeeDocuments),
 }));
 
 export const onboardingProgressRelations = relations(onboardingProgress, ({ one }) => ({
@@ -93,6 +105,13 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
 export const knowledgeQueriesRelations = relations(knowledgeQueries, ({ one }) => ({
   employee: one(employees, {
     fields: [knowledgeQueries.employeeId],
+    references: [employees.id],
+  }),
+}));
+
+export const employeeDocumentsRelations = relations(employeeDocuments, ({ one }) => ({
+  employee: one(employees, {
+    fields: [employeeDocuments.employeeId],
     references: [employees.id],
   }),
 }));
@@ -129,6 +148,11 @@ export const insertKnowledgeQuerySchema = createInsertSchema(knowledgeQueries).o
   timestamp: true,
 });
 
+export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments).omit({
+  id: true,
+  uploadedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -147,3 +171,6 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 export type KnowledgeQuery = typeof knowledgeQueries.$inferSelect;
 export type InsertKnowledgeQuery = z.infer<typeof insertKnowledgeQuerySchema>;
+
+export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
