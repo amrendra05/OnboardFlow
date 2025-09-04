@@ -26,6 +26,7 @@ export default function KnowledgeBase() {
     tags: [] as string[],
   });
   const [currentTag, setCurrentTag] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -35,7 +36,7 @@ export default function KnowledgeBase() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: typeof uploadForm) => {
+    mutationFn: async (data: typeof uploadForm & { fileContent?: string }) => {
       return apiRequest("POST", "/api/documents", data);
     },
     onSuccess: () => {
@@ -52,6 +53,7 @@ export default function KnowledgeBase() {
         fileType: "",
         tags: [],
       });
+      setSelectedFile(null);
     },
     onError: () => {
       toast({
@@ -79,16 +81,134 @@ export default function KnowledgeBase() {
     }));
   };
 
-  const handleSubmit = () => {
-    if (!uploadForm.title || !uploadForm.content || !uploadForm.category || !uploadForm.fileType) {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
       toast({
-        title: "Missing required fields",
-        description: "Please fill in all required fields.",
+        title: "File too large",
+        description: "Maximum file size is 10MB.",
         variant: "destructive",
       });
       return;
     }
-    uploadMutation.mutate(uploadForm);
+
+    // Validate file type
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Unsupported file type",
+        description: "Supported formats: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    
+    // Auto-fill form fields based on file
+    if (!uploadForm.title) {
+      setUploadForm(prev => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, "") }));
+    }
+    
+    // Auto-detect file type
+    const extension = file.name.toLowerCase().split('.').pop();
+    let detectedType = "text";
+    switch (extension) {
+      case 'pdf':
+        detectedType = "pdf";
+        break;
+      case 'doc':
+      case 'docx':
+        detectedType = "doc";
+        break;
+      case 'xls':
+      case 'xlsx':
+        detectedType = "spreadsheet";
+        break;
+      default:
+        detectedType = "text";
+    }
+    
+    if (!uploadForm.fileType) {
+      setUploadForm(prev => ({ ...prev, fileType: detectedType }));
+    }
+  };
+
+  const readFileContent = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (file.type === 'text/plain' || file.type === 'text/csv') {
+          resolve(content);
+        } else {
+          // For other file types, store the filename and basic info
+          resolve(`File: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nType: ${file.type}\n\nContent will be processed when viewing this document.`);
+        }
+      };
+      reader.onerror = reject;
+      
+      if (file.type === 'text/plain' || file.type === 'text/csv') {
+        reader.readAsText(file);
+      } else {
+        // For binary files, just return metadata
+        resolve(`File: ${file.name}\nSize: ${(file.size / 1024).toFixed(1)} KB\nType: ${file.type}\n\nContent will be processed when viewing this document.`);
+      }
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!uploadForm.title || !uploadForm.category || !uploadForm.fileType) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in title, category, and file type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    let finalContent = uploadForm.content;
+    
+    // If a file is selected, read its content
+    if (selectedFile) {
+      try {
+        const fileContent = await readFileContent(selectedFile);
+        finalContent = fileContent;
+      } catch (error) {
+        toast({
+          title: "Failed to read file",
+          description: "Please try again or enter content manually.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (!finalContent.trim()) {
+      toast({
+        title: "Missing content",
+        description: "Please either upload a file or enter content manually.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    uploadMutation.mutate({
+      ...uploadForm,
+      content: finalContent,
+    });
   };
 
   const categories = [
@@ -168,13 +288,48 @@ export default function KnowledgeBase() {
                 </div>
 
                 <div>
-                  <Label htmlFor="content">Content *</Label>
+                  <Label htmlFor="file">Upload File (Optional)</Label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
+                    <input
+                      id="file"
+                      type="file"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx"
+                      className="hidden"
+                      data-testid="input-file-upload"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('file')?.click()}
+                      data-testid="button-choose-file"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Choose File
+                    </Button>
+                    {selectedFile && (
+                      <div className="mt-2 text-sm text-foreground">
+                        <p className="font-medium">{selectedFile.name}</p>
+                        <p className="text-muted-foreground">
+                          {(selectedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Supports: PDF, DOC, DOCX, TXT, CSV, XLS, XLSX (max 10MB)
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="content">Content {!selectedFile && "*"}</Label>
                   <Textarea
                     id="content"
-                    placeholder="Enter the document content or description..."
+                    placeholder={selectedFile ? "File content will be automatically extracted..." : "Enter the document content or description..."}
                     value={uploadForm.content}
                     onChange={(e) => setUploadForm(prev => ({ ...prev, content: e.target.value }))}
                     className="min-h-[120px]"
+                    disabled={!!selectedFile}
                     data-testid="textarea-document-content"
                   />
                 </div>
