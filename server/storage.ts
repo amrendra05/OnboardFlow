@@ -59,6 +59,7 @@ export interface IStorage {
   // Employee documents
   createEmployeeDocument(document: InsertEmployeeDocument): Promise<EmployeeDocument>;
   getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]>;
+  getAllEmployeeDocuments(): Promise<EmployeeDocument[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -212,6 +213,13 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(employeeDocuments)
       .where(eq(employeeDocuments.employeeId, employeeId))
+      .orderBy(desc(employeeDocuments.uploadedAt));
+  }
+
+  async getAllEmployeeDocuments(): Promise<EmployeeDocument[]> {
+    return await db
+      .select()
+      .from(employeeDocuments)
       .orderBy(desc(employeeDocuments.uploadedAt));
   }
 }

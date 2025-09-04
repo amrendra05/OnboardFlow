@@ -201,6 +201,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all employee documents route
+  app.get("/api/employee-documents", async (req, res) => {
+    try {
+      const documents = await storage.getAllEmployeeDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error('Get all documents error:', error);
+      res.status(500).json({ error: "Failed to get all documents" });
+    }
+  });
+
   // Knowledge search route
   app.post("/api/knowledge/search", async (req, res) => {
     try {
