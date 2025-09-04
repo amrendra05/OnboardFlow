@@ -79,12 +79,25 @@ export default function DocumentUpload() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const allowedTypes = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.oasis.opendocument.presentation',
+      'text/plain'
+    ];
     
     files.forEach((file) => {
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const isValidExtension = allowedExtensions.includes(fileExtension);
+      const isValidMimeType = allowedMimeTypes.includes(file.type);
       
-      if (!allowedTypes.includes(fileExtension)) {
+      // Debug logging for file type detection
+      console.log(`File: ${file.name}, Extension: ${fileExtension}, MIME: ${file.type}, Valid Extension: ${isValidExtension}, Valid MIME: ${isValidMimeType}`);
+      
+      if (!isValidExtension && !isValidMimeType) {
         toast({
           title: "File type not supported",
           description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
@@ -109,12 +122,22 @@ export default function DocumentUpload() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files);
-    const allowedTypes = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    const allowedExtensions = ['.pdf', '.docx', '.pptx', '.ppt', '.odp', '.txt'];
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.oasis.opendocument.presentation',
+      'text/plain'
+    ];
     
     files.forEach((file) => {
       const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      const isValidExtension = allowedExtensions.includes(fileExtension);
+      const isValidMimeType = allowedMimeTypes.includes(file.type);
       
-      if (!allowedTypes.includes(fileExtension)) {
+      if (!isValidExtension && !isValidMimeType) {
         toast({
           title: "File type not supported",
           description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
@@ -166,7 +189,7 @@ export default function DocumentUpload() {
             id="file-input"
             type="file"
             multiple
-            accept=".pdf,.docx,.pptx,.ppt,.odp,.txt"
+            accept=".pdf,.docx,.pptx,.ppt,.odp,.txt,application/vnd.oasis.opendocument.presentation"
             onChange={handleFileSelect}
             className="hidden"
           />
