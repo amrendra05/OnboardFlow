@@ -32,7 +32,17 @@ export default function KnowledgeBase() {
   const { toast } = useToast();
 
   const { data: documents = [] } = useQuery<Document[]>({
-    queryKey: ["/api/documents", { search: searchQuery, category: selectedCategory === "all" ? undefined : selectedCategory }],
+    queryKey: ["/api/documents"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      
+      const url = `/api/documents${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch documents');
+      return response.json();
+    },
   });
 
   const uploadMutation = useMutation({
