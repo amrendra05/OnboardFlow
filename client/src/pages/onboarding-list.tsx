@@ -210,7 +210,7 @@ export default function OnboardingList() {
                       className="w-full"
                       data-testid={`view-details-${employee.id}`}
                       onClick={() => {
-                        // Navigate to employee details or documents view
+                        // Use wouter navigation instead of window.location
                         window.location.href = `/employees/${employee.id}`;
                       }}
                     >

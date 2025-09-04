@@ -90,7 +90,6 @@ export default function NewEmployee() {
         ...data,
         startDate: data.startDate.toISOString(),
       };
-      console.log('Sending employee data:', employeeData);
       const employeeResponse = await apiRequest("POST", "/api/employees", employeeData);
       const employee = await employeeResponse.json();
 

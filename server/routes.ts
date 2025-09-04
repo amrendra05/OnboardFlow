@@ -29,8 +29,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/employees", async (req, res) => {
     try {
-      console.log('Received employee data:', req.body);
-      
       // Transform the data to match schema expectations
       const transformedData = {
         ...req.body,
@@ -38,10 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         onboardingStage: "Pre-boarding" // Set default onboarding stage
       };
       
-      console.log('Transformed employee data:', transformedData);
-      console.log('About to validate with schema...');
       const data = insertEmployeeSchema.parse(transformedData);
-      console.log('Validation successful! Parsed employee data:', data);
       const employee = await storage.createEmployee(data);
       
       // Create initial onboarding progress
@@ -62,10 +57,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(employee);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.log('Zod validation errors:', error.errors);
         return res.status(400).json({ error: "Invalid employee data", details: error.errors });
       }
-      console.log('Other error:', error);
       res.status(500).json({ error: "Failed to create employee" });
     }
   });
