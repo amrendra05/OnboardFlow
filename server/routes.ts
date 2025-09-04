@@ -439,17 +439,19 @@ Guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama3-8b-8192',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
         ],
-        max_tokens: 600,
+        max_tokens: 500,
         temperature: 0.7,
       }),
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Groq API error: ${response.status} - ${errorText}`);
       throw new Error(`Groq API error: ${response.status}`);
     }
 
