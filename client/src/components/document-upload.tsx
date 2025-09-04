@@ -21,6 +21,7 @@ export default function DocumentUpload() {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log(`Upload mutation started for: ${file.name}`);
       // Simulate file processing
       const fileData = {
         name: file.name,
@@ -56,6 +57,7 @@ export default function DocumentUpload() {
       return response.json();
     },
     onSuccess: (data, file) => {
+      console.log(`Upload successful for: ${file.name}`);
       setUploadedFiles((prev) =>
         prev.map((f) => (f.name === file.name ? { ...f, status: "completed" } : f))
       );
@@ -66,6 +68,7 @@ export default function DocumentUpload() {
       });
     },
     onError: (error, file) => {
+      console.error(`Upload failed for: ${file.name}`, error);
       setUploadedFiles((prev) =>
         prev.map((f) => (f.name === file.name ? { ...f, status: "error" } : f))
       );
@@ -98,6 +101,7 @@ export default function DocumentUpload() {
       // }
       
       console.log(`Allowing file: ${file.name} with extension: ${fileExtension}`);
+      console.log(`Starting upload for: ${file.name}`);
       
       if (file.size > 10 * 1024 * 1024) {
         toast({
@@ -107,6 +111,7 @@ export default function DocumentUpload() {
         });
         return;
       }
+      console.log(`Calling uploadMutation.mutate for: ${file.name}`);
       uploadMutation.mutate(file);
     });
     e.target.value = "";
@@ -143,6 +148,7 @@ export default function DocumentUpload() {
         });
         return;
       }
+      console.log(`Calling uploadMutation.mutate for: ${file.name}`);
       uploadMutation.mutate(file);
     });
   };
