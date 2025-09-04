@@ -223,17 +223,14 @@ export default function KnowledgeBase() {
     });
   };
 
-  const handleDocumentClick = (document: Document) => {
+  const handleDocumentClick = (document: Document, event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
     console.log('Document clicked:', document.title);
     console.log('Current viewDialogOpen state:', viewDialogOpen);
     console.log('Setting dialog open to true');
     setSelectedDocument(document);
     setViewDialogOpen(true);
-    
-    // Force re-render after state update
-    setTimeout(() => {
-      console.log('After timeout - viewDialogOpen:', viewDialogOpen);
-    }, 100);
   };
 
   const categories = [
@@ -477,7 +474,7 @@ export default function KnowledgeBase() {
                         key={document.id}
                         data-testid={`document-${document.id}`}
                         className="hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleDocumentClick(document)}
+                        onClick={(e) => handleDocumentClick(document, e)}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -526,8 +523,14 @@ export default function KnowledgeBase() {
       {/* Document Viewer Dialog */}
       {console.log('Rendering modal - viewDialogOpen:', viewDialogOpen)}
       {viewDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          onClick={() => setViewDialogOpen(false)}
+        >
+          <div 
+            className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center space-x-2">
                 <FileText className="h-5 w-5" />
