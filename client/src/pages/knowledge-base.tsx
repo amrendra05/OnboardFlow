@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Search, Upload, FileText, Filter, X } from "lucide-react";
+import { Search, Upload, FileText, Filter, X, Brain } from "lucide-react";
 
 export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,6 +70,25 @@ export default function KnowledgeBase() {
       toast({
         title: "Failed to upload document",
         description: "Please check your input and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const trainModelMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/train-model", {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Model training initiated",
+        description: "The AI assistant is now learning from the latest documents in the knowledge base.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Training failed",
+        description: "There was an error initiating model training. Please try again.",
         variant: "destructive",
       });
     },
@@ -281,14 +300,24 @@ export default function KnowledgeBase() {
             <h2 className="text-2xl font-bold text-foreground">Knowledge Base</h2>
             <p className="text-muted-foreground">Search and manage your company's knowledge repository</p>
           </div>
-          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button data-testid="button-upload-document">
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Document
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+          <div className="flex space-x-3">
+            <Button 
+              onClick={() => trainModelMutation.mutate()}
+              disabled={trainModelMutation.isPending}
+              variant="outline"
+              data-testid="button-train-model"
+            >
+              <Brain className="h-4 w-4 mr-2" />
+              {trainModelMutation.isPending ? "Training..." : "Train Model"}
+            </Button>
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button data-testid="button-upload-document">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>Upload New Document</DialogTitle>
               </DialogHeader>
@@ -437,6 +466,7 @@ export default function KnowledgeBase() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </header>
 

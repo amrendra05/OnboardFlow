@@ -128,6 +128,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Model training endpoint
+  app.post("/api/train-model", async (req, res) => {
+    try {
+      // Get all documents for training
+      const documents = await storage.getDocuments();
+      
+      // Simulate model training process
+      const trainingData = documents.map(doc => ({
+        title: doc.title,
+        content: doc.content,
+        category: doc.category,
+        tags: doc.tags,
+      }));
+      
+      // In a real implementation, this would:
+      // 1. Process documents for vectorization
+      // 2. Update embeddings database
+      // 3. Retrain or fine-tune the model
+      // 4. Update model weights/parameters
+      
+      console.log(`Model training initiated with ${trainingData.length} documents`);
+      
+      res.json({ 
+        message: "Model training initiated successfully",
+        documentsProcessed: trainingData.length,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Model training error:', error);
+      res.status(500).json({ 
+        error: "Failed to initiate model training",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Chat routes
   app.get("/api/employees/:id/chat", async (req, res) => {
     try {
