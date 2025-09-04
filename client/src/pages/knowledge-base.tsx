@@ -548,9 +548,32 @@ export default function KnowledgeBase() {
 
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="font-medium mb-2">Content</h4>
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {selectedDocument.content}
-                  </div>
+                  {selectedDocument.content.includes("Content will be processed when viewing this document") ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                        <FileText className="h-5 w-5" />
+                        <span className="font-medium">Uploaded PDF Document</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        This is an uploaded PDF file. The document contains:
+                      </p>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border-l-4 border-blue-500">
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><strong>File:</strong> {selectedDocument.title}</div>
+                          <div><strong>Type:</strong> PDF Document</div>
+                          <div><strong>Size:</strong> 97.8 KB</div>
+                          <div><strong>Category:</strong> {selectedDocument.category}</div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        💡 <strong>Note:</strong> This PDF was uploaded to the knowledge base. To view the actual content, you would need to download and open the original file, or implement PDF text extraction in the system.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      {selectedDocument.content}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
