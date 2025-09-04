@@ -167,15 +167,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchDocuments(query: string): Promise<Document[]> {
+    // Split query into keywords for better search
+    const keywords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+    
+    if (keywords.length === 0) {
+      return [];
+    }
+
+    // Build search conditions for each keyword
+    const searchConditions = keywords.map(keyword => 
+      or(
+        like(documents.title, `%${keyword}%`),
+        like(documents.content, `%${keyword}%`)
+      )
+    );
+
     return await db
       .select()
       .from(documents)
-      .where(
-        or(
-          like(documents.title, `%${query}%`),
-          like(documents.content, `%${query}%`)
-        )
-      )
+      .where(or(...searchConditions))
       .orderBy(desc(documents.updatedAt));
   }
 

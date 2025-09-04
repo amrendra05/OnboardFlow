@@ -387,16 +387,23 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
     let hasRelevantKnowledge = false;
     
     if (relevantDocs.length > 0) {
-      // Check if documents contain substantial relevant content
-      hasRelevantKnowledge = relevantDocs.some(doc => 
-        doc.title.toLowerCase().includes(message.toLowerCase().split(' ').find(word => word.length > 3) || '') ||
-        doc.content.toLowerCase().includes(message.toLowerCase().split(' ').find(word => word.length > 3) || '')
-      );
+      // More comprehensive relevance check
+      const queryWords = message.toLowerCase().split(' ').filter(word => word.length > 2);
+      hasRelevantKnowledge = relevantDocs.some(doc => {
+        const docText = (doc.title + ' ' + doc.content).toLowerCase();
+        return queryWords.some(word => docText.includes(word));
+      });
       
+      // Include more content from relevant documents
       context = relevantDocs
-        .slice(0, 3)
-        .map(doc => `Document: ${doc.title}\nCategory: ${doc.category}\nContent: ${doc.content.substring(0, 600)}...`)
-        .join("\n\n");
+        .slice(0, 5)
+        .map(doc => {
+          const content = doc.content.length > 1000 ? 
+            doc.content.substring(0, 1000) + '...' : 
+            doc.content;
+          return `Document: "${doc.title}"\nCategory: ${doc.category}\nContent: ${content}`;
+        })
+        .join("\n\n---\n\n");
     }
 
     // Step 2: If no relevant knowledge base content, search the web
@@ -418,13 +425,13 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
 ${context ? `Context from ${hasRelevantKnowledge ? 'company documents' : 'company documents and web search'}:
 ${context}
 
-Guidelines:
-- Prioritize information from company documents over web sources
-- Be helpful, friendly, and professional
-- Provide specific, actionable advice
-- Reference company documents when relevant
-- If using web information, clearly indicate it's general guidance
-- Keep responses concise but informative` : `No specific company documents found for this question.
+INSTRUCTIONS:
+- Use the company documents as your PRIMARY source of information
+- Quote directly from the documents when relevant
+- Reference specific document titles when citing information
+- If the documents contain the answer, use them instead of general knowledge
+- Be specific about which document contains the information
+- Keep responses informative but concise` : `No specific company documents found for this question.
 
 Guidelines:
 - Be helpful, friendly, and professional
