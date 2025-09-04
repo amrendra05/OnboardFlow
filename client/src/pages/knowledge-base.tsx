@@ -225,10 +225,15 @@ export default function KnowledgeBase() {
 
   const handleDocumentClick = (document: Document) => {
     console.log('Document clicked:', document.title);
+    console.log('Current viewDialogOpen state:', viewDialogOpen);
     console.log('Setting dialog open to true');
     setSelectedDocument(document);
     setViewDialogOpen(true);
-    console.log('Dialog state should be:', true);
+    
+    // Force re-render after state update
+    setTimeout(() => {
+      console.log('After timeout - viewDialogOpen:', viewDialogOpen);
+    }, 100);
   };
 
   const categories = [
@@ -432,6 +437,18 @@ export default function KnowledgeBase() {
             </CardContent>
           </Card>
 
+          {/* Debug button */}
+          <Button 
+            onClick={() => {
+              console.log('Test button clicked');
+              setSelectedDocument(documents[0]);
+              setViewDialogOpen(true);
+            }}
+            className="mb-4"
+          >
+            Test Modal (Debug)
+          </Button>
+
           {/* Categories and Results */}
           <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
             <TabsList className="grid w-full grid-cols-4">
@@ -507,6 +524,7 @@ export default function KnowledgeBase() {
       </div>
 
       {/* Document Viewer Dialog */}
+      {console.log('Rendering modal - viewDialogOpen:', viewDialogOpen)}
       {viewDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col">
