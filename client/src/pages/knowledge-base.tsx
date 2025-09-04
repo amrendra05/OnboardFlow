@@ -613,7 +613,7 @@ export default function KnowledgeBase() {
                           className="ml-4"
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          Download Info
+                          Download PDF Info
                         </Button>
                       </div>
                     </div>
