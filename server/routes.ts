@@ -61,8 +61,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(employee);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.log('Zod validation errors:', error.errors);
         return res.status(400).json({ error: "Invalid employee data", details: error.errors });
       }
+      console.log('Other error:', error);
       res.status(500).json({ error: "Failed to create employee" });
     }
   });
