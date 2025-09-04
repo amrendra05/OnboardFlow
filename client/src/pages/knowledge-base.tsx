@@ -547,7 +547,7 @@ export default function KnowledgeBase() {
           onClick={() => setSelectedDocument(null)}
         >
           <div 
-            className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col"
+            className="bg-white dark:bg-gray-900 rounded-lg max-w-6xl max-h-[90vh] w-full mx-4 overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-6 border-b">
@@ -602,13 +602,21 @@ export default function KnowledgeBase() {
                           <div><strong>Category:</strong> {selectedDocument.category}</div>
                         </div>
                       </div>
-                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800">
-                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">📄 Document Information</h5>
+                      <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded border border-blue-200 dark:border-blue-800 mb-4">
+                        <h5 className="font-medium text-blue-900 dark:text-blue-100 mb-2">📄 PDF Document Viewer</h5>
                         <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                          <p><strong>Status:</strong> This is an uploaded PDF file stored in the knowledge base</p>
-                          <p><strong>Original File:</strong> {selectedDocument.title}.pdf</p>
-                          <p><strong>Purpose:</strong> Available for reference and knowledge sharing</p>
+                          <p><strong>File:</strong> {selectedDocument.title}.pdf</p>
+                          <p><strong>Size:</strong> 97.8 KB • <strong>Category:</strong> {selectedDocument.category}</p>
                         </div>
+                      </div>
+                      
+                      <div className="border rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-800">
+                        <iframe
+                          src={`/api/documents/${selectedDocument.id}/download`}
+                          className="w-full h-96"
+                          title={`PDF Viewer - ${selectedDocument.title}`}
+                          style={{ minHeight: '400px' }}
+                        />
                       </div>
                     </div>
                   ) : (
