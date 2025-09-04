@@ -184,6 +184,7 @@ export default function DocumentUpload() {
             id="file-input"
             type="file"
             multiple
+            accept=".odp,.pdf,.docx,.pptx,.ppt,.txt,application/vnd.oasis.opendocument.presentation,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-powerpoint,text/plain"
             onChange={handleFileSelect}
             className="hidden"
           />
