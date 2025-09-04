@@ -1,20 +1,95 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Document } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Upload, FileText, Filter } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Search, Upload, FileText, Filter, X } from "lucide-react";
 
 export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [uploadForm, setUploadForm] = useState({
+    title: "",
+    content: "",
+    category: "",
+    fileType: "",
+    tags: [] as string[],
+  });
+  const [currentTag, setCurrentTag] = useState("");
+  
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: documents = [] } = useQuery<Document[]>({
     queryKey: ["/api/documents", { search: searchQuery, category: selectedCategory === "all" ? undefined : selectedCategory }],
   });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (data: typeof uploadForm) => {
+      return apiRequest("POST", "/api/documents", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      toast({
+        title: "Document uploaded successfully",
+        description: "Your document has been added to the knowledge base.",
+      });
+      setUploadDialogOpen(false);
+      setUploadForm({
+        title: "",
+        content: "",
+        category: "",
+        fileType: "",
+        tags: [],
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to upload document",
+        description: "Please check your input and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddTag = () => {
+    if (currentTag.trim() && !uploadForm.tags.includes(currentTag.trim())) {
+      setUploadForm(prev => ({
+        ...prev,
+        tags: [...prev.tags, currentTag.trim()]
+      }));
+      setCurrentTag("");
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setUploadForm(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleSubmit = () => {
+    if (!uploadForm.title || !uploadForm.content || !uploadForm.category || !uploadForm.fileType) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    uploadMutation.mutate(uploadForm);
+  };
 
   const categories = [
     { id: "all", name: "All Documents", count: documents.length },
@@ -32,10 +107,127 @@ export default function KnowledgeBase() {
             <h2 className="text-2xl font-bold text-foreground">Knowledge Base</h2>
             <p className="text-muted-foreground">Search and manage your company's knowledge repository</p>
           </div>
-          <Button data-testid="button-upload-document">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Document
-          </Button>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button data-testid="button-upload-document">
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Upload New Document</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      placeholder="Document title"
+                      value={uploadForm.title}
+                      onChange={(e) => setUploadForm(prev => ({ ...prev, title: e.target.value }))}
+                      data-testid="input-document-title"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select 
+                      value={uploadForm.category} 
+                      onValueChange={(value) => setUploadForm(prev => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger data-testid="select-document-category">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="policies">Policies</SelectItem>
+                        <SelectItem value="projects">Projects</SelectItem>
+                        <SelectItem value="training">Training</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="fileType">File Type *</Label>
+                  <Select 
+                    value={uploadForm.fileType} 
+                    onValueChange={(value) => setUploadForm(prev => ({ ...prev, fileType: value }))}
+                  >
+                    <SelectTrigger data-testid="select-file-type">
+                      <SelectValue placeholder="Select file type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="doc">Document</SelectItem>
+                      <SelectItem value="presentation">Presentation</SelectItem>
+                      <SelectItem value="spreadsheet">Spreadsheet</SelectItem>
+                      <SelectItem value="text">Text</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="content">Content *</Label>
+                  <Textarea
+                    id="content"
+                    placeholder="Enter the document content or description..."
+                    value={uploadForm.content}
+                    onChange={(e) => setUploadForm(prev => ({ ...prev, content: e.target.value }))}
+                    className="min-h-[120px]"
+                    data-testid="textarea-document-content"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <div className="flex space-x-2">
+                    <Input
+                      id="tags"
+                      placeholder="Add a tag"
+                      value={currentTag}
+                      onChange={(e) => setCurrentTag(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                      data-testid="input-add-tag"
+                    />
+                    <Button type="button" onClick={handleAddTag} variant="outline">
+                      Add
+                    </Button>
+                  </div>
+                  {uploadForm.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {uploadForm.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary" className="flex items-center space-x-1">
+                          <span>{tag}</span>
+                          <X 
+                            className="h-3 w-3 cursor-pointer" 
+                            onClick={() => handleRemoveTag(tag)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setUploadDialogOpen(false)}
+                    data-testid="button-cancel-upload"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    disabled={uploadMutation.isPending}
+                    data-testid="button-submit-upload"
+                  >
+                    {uploadMutation.isPending ? "Uploading..." : "Upload Document"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
