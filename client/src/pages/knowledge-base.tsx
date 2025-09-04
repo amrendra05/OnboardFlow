@@ -224,6 +224,7 @@ export default function KnowledgeBase() {
   };
 
   const handleDocumentClick = (document: Document) => {
+    console.log('Document clicked:', document.title);
     setSelectedDocument(document);
     setViewDialogOpen(true);
   };
