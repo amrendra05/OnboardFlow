@@ -87,15 +87,15 @@ export default function DocumentUpload() {
       // Debug logging for file type detection
       console.log(`File: ${file.name}, Extension: ${fileExtension}`);
       
-      // Always allow these specific extensions regardless of MIME type
-      if (!allowedExtensions.includes(fileExtension)) {
-        toast({
-          title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
-          variant: "destructive",
-        });
-        return;
-      }
+      // TEMPORARY: Allow ALL files for testing
+      // if (!allowedExtensions.includes(fileExtension)) {
+      //   toast({
+      //     title: "File type not supported",
+      //     description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+      //     variant: "destructive",
+      //   });
+      //   return;
+      // }
       
       console.log(`Allowing file: ${file.name} with extension: ${fileExtension}`);
       
@@ -123,15 +123,15 @@ export default function DocumentUpload() {
       // Debug logging for drag-and-drop
       console.log(`Drag-and-Drop File: ${file.name}, Extension: ${fileExtension}`);
       
-      // Always allow these specific extensions regardless of MIME type
-      if (!allowedExtensions.includes(fileExtension)) {
-        toast({
-          title: "File type not supported",
-          description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
-          variant: "destructive",
-        });
-        return;
-      }
+      // TEMPORARY: Allow ALL files for testing
+      // if (!allowedExtensions.includes(fileExtension)) {
+      //   toast({
+      //     title: "File type not supported",
+      //     description: `${file.name} is not a supported file type. Please upload PDF, DOCX, PPTX, PPT, ODP, or TXT files.`,
+      //     variant: "destructive",
+      //   });
+      //   return;
+      // }
       
       console.log(`Allowing drag-and-drop file: ${file.name} with extension: ${fileExtension}`);
       
