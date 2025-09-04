@@ -228,6 +228,44 @@ export default function KnowledgeBase() {
     setSelectedDocument(document);
   };
 
+  const handleDownloadDocument = async (document: Document) => {
+    try {
+      const response = await fetch(`/api/documents/${document.id}/download`);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          title: "Download not available",
+          description: errorData.message || "This file cannot be downloaded at this time.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // For successful downloads, create a blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${document.title}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Download started",
+        description: `${document.title} is being downloaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "There was an error downloading the document.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const categories = [
     { id: "all", name: "All Documents", count: documents.length },
     { id: "policies", name: "Policies", count: documents.filter(d => d.category === "policies").length },
@@ -565,13 +603,36 @@ export default function KnowledgeBase() {
                           <div><strong>Category:</strong> {selectedDocument.category}</div>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        💡 <strong>Note:</strong> This PDF was uploaded to the knowledge base. To view the actual content, you would need to download and open the original file, or implement PDF text extraction in the system.
-                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">
+                          💡 <strong>Note:</strong> This is an uploaded PDF file. Click download to get more information about accessing the file.
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(selectedDocument)}
+                          className="ml-4"
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Download Info
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {selectedDocument.content}
+                    <div className="space-y-3">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {selectedDocument.content}
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadDocument(selectedDocument)}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Download as Text
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>

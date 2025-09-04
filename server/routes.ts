@@ -219,6 +219,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download document route
+  app.get("/api/documents/:id/download", async (req, res) => {
+    try {
+      const document = await storage.getDocument(req.params.id);
+      if (!document) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+
+      // Check if this document has associated file data
+      if (document.content.includes("Content will be processed when viewing this document")) {
+        // This is an uploaded file reference, try to find the actual file data
+        // For now, return a message that the file needs to be implemented
+        return res.status(404).json({ 
+          error: "File download not available",
+          message: "This document is a reference to an uploaded file. File download functionality needs to be implemented to access the original file."
+        });
+      }
+
+      // For text-based documents, create a downloadable text file
+      const fileName = `${document.title}.txt`;
+      const content = document.content;
+      
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(content);
+    } catch (error) {
+      console.error('Download document error:', error);
+      res.status(500).json({ error: "Failed to download document" });
+    }
+  });
+
   // Knowledge search route
   app.post("/api/knowledge/search", async (req, res) => {
     try {
