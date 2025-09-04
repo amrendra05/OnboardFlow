@@ -20,6 +20,7 @@ export const employees = pgTable("employees", {
   position: text("position").notNull(),
   startDate: timestamp("start_date").notNull(),
   status: text("status").notNull().default("active"),
+  onboardingStage: text("onboarding_stage").notNull().default("Pre-boarding"),
   avatarUrl: text("avatar_url"),
   createdAt: timestamp("created_at").default(sql`now()`),
 });

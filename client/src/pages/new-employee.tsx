@@ -443,9 +443,9 @@ export default function NewEmployee() {
                     <Button
                       type="submit"
                       disabled={createEmployeeMutation.isPending}
-                      data-testid="button-create-employee"
+                      data-testid="button-add-onboarding"
                     >
-                      {createEmployeeMutation.isPending ? "Creating..." : "Create Employee"}
+                      {createEmployeeMutation.isPending ? "Adding..." : "Add Onboarding"}
                     </Button>
                   </div>
                 </form>
