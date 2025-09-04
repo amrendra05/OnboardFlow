@@ -225,8 +225,10 @@ export default function KnowledgeBase() {
 
   const handleDocumentClick = (document: Document) => {
     console.log('Document clicked:', document.title);
+    console.log('Setting dialog open to true');
     setSelectedDocument(document);
     setViewDialogOpen(true);
+    console.log('Dialog state should be:', true);
   };
 
   const categories = [
@@ -505,53 +507,63 @@ export default function KnowledgeBase() {
       </div>
 
       {/* Document Viewer Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5" />
-              <span>{selectedDocument?.title}</span>
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedDocument && (
-            <div className="flex-1 overflow-auto space-y-4">
-              <div className="flex items-center space-x-4 text-sm text-muted-foreground border-b pb-3">
-                <Badge variant="outline">{selectedDocument.fileType}</Badge>
-                <Badge variant="secondary">{selectedDocument.category}</Badge>
-                <span>Updated: {new Date(selectedDocument.updatedAt || "").toLocaleDateString()}</span>
+      {viewDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-4xl max-h-[80vh] w-full mx-4 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span className="font-semibold text-lg">{selectedDocument?.title}</span>
               </div>
-
-              {selectedDocument.tags && selectedDocument.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedDocument.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              <div className="bg-muted p-4 rounded-lg">
-                <h4 className="font-medium mb-2">Content</h4>
-                <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {selectedDocument.content}
-                </div>
-              </div>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setViewDialogOpen(false)}
+                data-testid="button-close-document"
+              >
+                ✕
+              </Button>
             </div>
-          )}
+            
+            {selectedDocument && (
+              <div className="flex-1 overflow-auto space-y-4 p-6">
+                <div className="flex items-center space-x-4 text-sm text-muted-foreground border-b pb-3">
+                  <Badge variant="outline">{selectedDocument.fileType}</Badge>
+                  <Badge variant="secondary">{selectedDocument.category}</Badge>
+                  <span>Updated: {new Date(selectedDocument.updatedAt || "").toLocaleDateString()}</span>
+                </div>
 
-          <div className="flex justify-end pt-4 border-t">
-            <Button 
-              variant="outline" 
-              onClick={() => setViewDialogOpen(false)}
-              data-testid="button-close-document"
-            >
-              Close
-            </Button>
+                {selectedDocument.tags && selectedDocument.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedDocument.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2">Content</h4>
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                    {selectedDocument.content}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end p-6 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setViewDialogOpen(false)}
+                data-testid="button-close-document-footer"
+              >
+                Close
+              </Button>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }
