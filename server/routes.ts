@@ -30,7 +30,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/employees", async (req, res) => {
     try {
       console.log('Received employee data:', req.body);
-      const data = insertEmployeeSchema.parse(req.body);
+      
+      // Transform the data to match schema expectations
+      const transformedData = {
+        ...req.body,
+        startDate: new Date(req.body.startDate),
+        onboardingStage: "Pre-boarding" // Set default onboarding stage
+      };
+      
+      console.log('Transformed employee data:', transformedData);
+      const data = insertEmployeeSchema.parse(transformedData);
       console.log('Parsed employee data:', data);
       const employee = await storage.createEmployee(data);
       
