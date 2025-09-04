@@ -27,6 +27,8 @@ export default function KnowledgeBase() {
   });
   const [currentTag, setCurrentTag] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -219,6 +221,11 @@ export default function KnowledgeBase() {
       ...uploadForm,
       content: finalContent,
     });
+  };
+
+  const handleDocumentClick = (document: Document) => {
+    setSelectedDocument(document);
+    setViewDialogOpen(true);
   };
 
   const categories = [
@@ -450,6 +457,7 @@ export default function KnowledgeBase() {
                         key={document.id}
                         data-testid={`document-${document.id}`}
                         className="hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => handleDocumentClick(document)}
                       >
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
@@ -494,6 +502,55 @@ export default function KnowledgeBase() {
           </Tabs>
         </div>
       </div>
+
+      {/* Document Viewer Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5" />
+              <span>{selectedDocument?.title}</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedDocument && (
+            <div className="flex-1 overflow-auto space-y-4">
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground border-b pb-3">
+                <Badge variant="outline">{selectedDocument.fileType}</Badge>
+                <Badge variant="secondary">{selectedDocument.category}</Badge>
+                <span>Updated: {new Date(selectedDocument.updatedAt || "").toLocaleDateString()}</span>
+              </div>
+
+              {selectedDocument.tags && selectedDocument.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedDocument.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="bg-muted p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Content</h4>
+                <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {selectedDocument.content}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t">
+            <Button 
+              variant="outline" 
+              onClick={() => setViewDialogOpen(false)}
+              data-testid="button-close-document"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
