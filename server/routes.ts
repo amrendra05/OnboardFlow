@@ -29,7 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/employees", async (req, res) => {
     try {
+      console.log('Received employee data:', req.body);
       const data = insertEmployeeSchema.parse(req.body);
+      console.log('Parsed employee data:', data);
       const employee = await storage.createEmployee(data);
       
       // Create initial onboarding progress

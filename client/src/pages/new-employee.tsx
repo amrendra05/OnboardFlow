@@ -86,10 +86,12 @@ export default function NewEmployee() {
   const createEmployeeMutation = useMutation({
     mutationFn: async (data: FormData) => {
       // First create the employee
-      const employeeResponse = await apiRequest("POST", "/api/employees", {
+      const employeeData = {
         ...data,
         startDate: data.startDate.toISOString(),
-      });
+      };
+      console.log('Sending employee data:', employeeData);
+      const employeeResponse = await apiRequest("POST", "/api/employees", employeeData);
       const employee = await employeeResponse.json();
 
       // Then upload any documents if present
