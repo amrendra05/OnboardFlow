@@ -167,53 +167,78 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchDocuments(query: string): Promise<Document[]> {
-    // Split query into keywords for better search
-    const keywords = query.toLowerCase().split(' ').filter(word => word.length > 2);
-    
-    if (keywords.length === 0) {
-      // If no keywords, return some recent documents to provide context
-      return await db
-        .select()
-        .from(documents)
-        .orderBy(desc(documents.updatedAt))
-        .limit(3);
-    }
+    try {
+      console.log(`[SEARCH] Starting search for query: "${query}"`);
+      
+      // Split query into keywords for better search
+      const keywords = query.toLowerCase().split(' ').filter(word => word.length > 2);
+      console.log(`[SEARCH] Extracted keywords:`, keywords);
+      
+      if (keywords.length === 0) {
+        console.log(`[SEARCH] No keywords found, returning recent documents`);
+        // If no keywords, return some recent documents to provide context
+        const recentDocs = await db
+          .select()
+          .from(documents)
+          .orderBy(desc(documents.updatedAt))
+          .limit(3);
+        console.log(`[SEARCH] Returning ${recentDocs.length} recent documents`);
+        return recentDocs;
+      }
 
-    // Build search conditions for each keyword - use case-insensitive search
-    const searchConditions = keywords.map(keyword => 
-      or(
-        sql`LOWER(${documents.title}) LIKE LOWER(${`%${keyword}%`})`,
-        sql`LOWER(${documents.content}) LIKE LOWER(${`%${keyword}%`})`,
-        sql`LOWER(${documents.category}) LIKE LOWER(${`%${keyword}%`})`
-      )
-    );
-
-    const results = await db
-      .select()
-      .from(documents)
-      .where(or(...searchConditions))
-      .orderBy(desc(documents.updatedAt));
-
-    // If no exact matches, try broader search with shorter keywords
-    if (results.length === 0 && keywords.length > 0) {
-      const broaderKeywords = query.toLowerCase().split(' ').filter(word => word.length > 1);
-      const broaderConditions = broaderKeywords.map(keyword => 
+      // Use simpler LIKE search to avoid SQL syntax issues
+      const searchConditions = keywords.map(keyword => 
         or(
-          sql`LOWER(${documents.title}) LIKE LOWER(${`%${keyword}%`})`,
-          sql`LOWER(${documents.content}) LIKE LOWER(${`%${keyword}%`})`,
-          sql`LOWER(${documents.category}) LIKE LOWER(${`%${keyword}%`})`
+          like(documents.title, `%${keyword}%`),
+          like(documents.content, `%${keyword}%`),
+          like(documents.category, `%${keyword}%`)
         )
       );
 
-      return await db
+      console.log(`[SEARCH] Executing search with ${searchConditions.length} conditions`);
+      const results = await db
         .select()
         .from(documents)
-        .where(or(...broaderConditions))
-        .orderBy(desc(documents.updatedAt))
-        .limit(5);
-    }
+        .where(or(...searchConditions))
+        .orderBy(desc(documents.updatedAt));
 
-    return results;
+      console.log(`[SEARCH] Found ${results.length} documents`);
+
+      // If no exact matches, try broader search with shorter keywords
+      if (results.length === 0 && keywords.length > 0) {
+        console.log(`[SEARCH] No results, trying broader search`);
+        const broaderKeywords = query.toLowerCase().split(' ').filter(word => word.length > 1);
+        const broaderConditions = broaderKeywords.map(keyword => 
+          or(
+            like(documents.title, `%${keyword}%`),
+            like(documents.content, `%${keyword}%`),
+            like(documents.category, `%${keyword}%`)
+          )
+        );
+
+        const broaderResults = await db
+          .select()
+          .from(documents)
+          .where(or(...broaderConditions))
+          .orderBy(desc(documents.updatedAt))
+          .limit(5);
+        
+        console.log(`[SEARCH] Broader search found ${broaderResults.length} documents`);
+        return broaderResults;
+      }
+
+      if (results.length > 0) {
+        console.log(`[SEARCH] Document titles found:`, results.map(d => d.title));
+      }
+      
+      return results;
+    } catch (error) {
+      console.error(`[SEARCH] Search failed:`, error);
+      // Fallback: return all documents if search fails
+      const allDocs = await db.select().from(documents).limit(5);
+      console.log(`[SEARCH] Fallback: returning ${allDocs.length} documents`);
+      return allDocs;
+    }
   }
 
   async getChatMessages(employeeId: string): Promise<ChatMessage[]> {

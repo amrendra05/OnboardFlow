@@ -443,18 +443,20 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
       console.log(`Using documents: ${relevantDocs.map(d => d.title).join(', ')}`);
     }
 
-    // Step 2: If no relevant knowledge base content, search the web
+    // Step 2: If no relevant knowledge base content, use fallback
     let webContext = "";
     if (!hasRelevantKnowledge) {
-      try {
-        const webResults = await searchWeb(message);
-        if (webResults) {
-          webContext = `\n\nAdditional context from web search:\n${webResults}`;
-          context += webContext;
-        }
-      } catch (webError) {
-        console.log('Web search unavailable, using knowledge base only');
-      }
+      console.log(`[AI] No knowledge base documents found, will provide general guidance`);
+      // Disable web search temporarily to debug knowledge base usage
+      // try {
+      //   const webResults = await searchWeb(message);
+      //   if (webResults) {
+      //     webContext = `\n\nAdditional context from web search:\n${webResults}`;
+      //     context += webContext;
+      //   }
+      // } catch (webError) {
+      //   console.log('Web search unavailable, using knowledge base only');
+      // }
     }
 
     const systemPrompt = `You are an AI assistant for Cognizant's employee onboarding platform. You help new employees with onboarding questions, company policies, project information, and technical setup.
