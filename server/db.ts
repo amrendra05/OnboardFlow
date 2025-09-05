@@ -8,9 +8,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// For local development, use standard postgres-js
-// This will work with both local PostgreSQL and most remote PostgreSQL databases
-const client = postgres(process.env.DATABASE_URL);
+// Configure postgres client with SSL handling
+const databaseUrl = process.env.DATABASE_URL;
+
+// Add sslmode=disable for local development if not already specified
+let finalUrl = databaseUrl;
+if ((databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) && !databaseUrl.includes('sslmode')) {
+  finalUrl = databaseUrl + (databaseUrl.includes('?') ? '&' : '?') + 'sslmode=disable';
+}
+
+const client = postgres(finalUrl, {
+  // Configure connection pool
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
+
 export const db = drizzle({ client, schema });
 
 // If you need Neon-specific features in production, you can add conditional logic here
