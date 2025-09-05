@@ -47,8 +47,18 @@ export default function KnowledgeBase() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: typeof uploadForm & { fileContent?: string }) => {
-      return apiRequest("POST", "/api/documents", data);
+    mutationFn: async (data: { formData: FormData }) => {
+      const response = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: data.formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -209,24 +219,8 @@ export default function KnowledgeBase() {
       return;
     }
 
-    let finalContent = uploadForm.content;
-    
-    // If a file is selected, read its content
-    if (selectedFile) {
-      try {
-        const fileContent = await readFileContent(selectedFile);
-        finalContent = fileContent;
-      } catch (error) {
-        toast({
-          title: "Failed to read file",
-          description: "Please try again or enter content manually.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    if (!finalContent.trim()) {
+    // If no file is selected and no manual content, show error
+    if (!selectedFile && !uploadForm.content.trim()) {
       toast({
         title: "Missing content",
         description: "Please either upload a file or enter content manually.",
@@ -235,10 +229,22 @@ export default function KnowledgeBase() {
       return;
     }
 
-    uploadMutation.mutate({
-      ...uploadForm,
-      content: finalContent,
-    });
+    const formData = new FormData();
+    formData.append('title', uploadForm.title);
+    formData.append('category', uploadForm.category);
+    formData.append('fileType', uploadForm.fileType);
+    formData.append('tags', JSON.stringify(uploadForm.tags));
+    
+    if (selectedFile) {
+      formData.append('file', selectedFile);
+    } else {
+      // If no file but has content, create a text file
+      const textBlob = new Blob([uploadForm.content], { type: 'text/plain' });
+      const textFile = new File([textBlob], `${uploadForm.title}.txt`, { type: 'text/plain' });
+      formData.append('file', textFile);
+    }
+
+    uploadMutation.mutate({ formData });
   };
 
   const handleDocumentClick = (document: Document, event: React.MouseEvent) => {
