@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,19 @@ export default function ChatAssistant() {
   const [inputMessage, setInputMessage] = useState("");
   const [selectedEmployeeId] = useState("540dd7fe-a72e-4a86-a996-e61ee9eb10c9"); // John Smith's ID
   const queryClient = useQueryClient();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [] } = useQuery<ChatMessage[]>({
     queryKey: ["/api/employees", selectedEmployeeId, "chat"],
     enabled: !!selectedEmployeeId,
   });
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -61,7 +69,7 @@ export default function ChatAssistant() {
       </CardHeader>
 
       {/* Chat Messages */}
-      <CardContent className="flex-1 overflow-y-auto space-y-4 pb-4">
+      <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 pb-4">
         {messages.length === 0 ? (
           <div className="chat-message">
             <div className="flex space-x-3">
