@@ -1,9 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import postgres from 'postgres';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,5 +8,10 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// For local development, use standard postgres-js
+// This will work with both local PostgreSQL and most remote PostgreSQL databases
+const client = postgres(process.env.DATABASE_URL);
+export const db = drizzle({ client, schema });
+
+// If you need Neon-specific features in production, you can add conditional logic here
+// But for most cases, postgres-js works with both local and remote databases
