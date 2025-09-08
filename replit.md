@@ -1,4 +1,4 @@
-# Cognizant AI - Employee Onboarding Platform
+# Pod 42 AI - Employee Onboarding Platform
 
 ## Overview
 

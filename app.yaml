@@ -1,0 +1,19 @@
+runtime: nodejs20
+
+env_variables:
+  NODE_ENV: production
+  DATABASE_URL: "postgresql://username:password@private-ip:5432/database_name"
+  GROQ_API_KEY: "your-groq-api-key"
+
+# For Cloud SQL connection
+vpc_access_connector:
+  name: "projects/YOUR_PROJECT_ID/locations/YOUR_REGION/connectors/YOUR_CONNECTOR_NAME"
+
+# Optional: For larger file uploads
+automatic_scaling:
+  max_instances: 10
+  min_instances: 1
+
+# Handle Node.js build
+build_env_variables:
+  NODE_ENV: production

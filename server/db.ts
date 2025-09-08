@@ -11,18 +11,24 @@ if (!process.env.DATABASE_URL) {
 // Configure postgres client with SSL handling
 const databaseUrl = process.env.DATABASE_URL;
 
-// Add sslmode=disable for local development if not already specified
+// Configure connection based on environment
 let finalUrl = databaseUrl;
-if ((databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) && !databaseUrl.includes('sslmode')) {
-  finalUrl = databaseUrl + (databaseUrl.includes('?') ? '&' : '?') + 'sslmode=disable';
-}
-
-const client = postgres(finalUrl, {
-  // Configure connection pool
+let connectionConfig: any = {
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
-});
+};
+
+// Local development
+if ((databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')) && !databaseUrl.includes('sslmode')) {
+  finalUrl = databaseUrl + (databaseUrl.includes('?') ? '&' : '?') + 'sslmode=disable';
+}
+// Cloud SQL (GCP App Engine)
+else if (process.env.NODE_ENV === 'production') {
+  connectionConfig.ssl = { rejectUnauthorized: false };
+}
+
+const client = postgres(finalUrl, connectionConfig);
 
 export const db = drizzle({ client, schema });
 
