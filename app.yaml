@@ -4,6 +4,7 @@ env_variables:
   NODE_ENV: production
   DATABASE_URL: "postgresql://postgres:Password-1@10.3.112.3:5432/postgres"
   GROQ_API_KEY: "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"
+  PORT=8080
 
 # For Cloud SQL connection
 vpc_access_connector:
