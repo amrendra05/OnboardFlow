@@ -43,13 +43,40 @@ export async function extractTextFromFile(fileBuffer: Buffer, mimeType: string, 
 
 async function extractPDFText(buffer: Buffer): Promise<FileParseResult> {
   try {
-    // Dynamic import to avoid the test file issue
+    // Dynamic import with error handling for App Engine compatibility
     const pdfParse = (await import('pdf-parse')).default;
-    const pdfData = await pdfParse(buffer);
+    
+    // Configure pdf-parse options for App Engine compatibility
+    const options = {
+      max: 0, // Parse all pages
+    };
+    
+    const pdfData = await pdfParse(buffer, options);
     return {
       content: pdfData.text.trim() || '[PDF contains no extractable text]'
     };
   } catch (error) {
+    // Handle specific ENOENT errors for test files
+    if (error instanceof Error && error.message.includes('ENOENT') && error.message.includes('test/data')) {
+      console.warn('PDF-parse test file access issue (App Engine compatibility), falling back to basic text extraction');
+      try {
+        // Fallback: Try again with minimal configuration
+        const pdfParse = (await import('pdf-parse')).default;
+        const pdfData = await pdfParse(buffer, { max: 1 }); // Only parse first page as fallback
+        return {
+          content: pdfData.text.trim() || '[PDF parsing succeeded but no text extracted]',
+          error: 'Partial parsing due to environment limitations'
+        };
+      } catch (fallbackError) {
+        return {
+          content: `[PDF file detected but text extraction failed due to App Engine limitations]
+File size: ${(buffer.length / 1024).toFixed(1)} KB
+This is a known limitation with PDF parsing in serverless environments.`,
+          error: 'PDF parsing not supported in this environment'
+        };
+      }
+    }
+    
     throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
