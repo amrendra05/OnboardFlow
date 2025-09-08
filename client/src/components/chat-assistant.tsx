@@ -55,7 +55,7 @@ export default function ChatAssistant() {
   };
 
   return (
-    <Card className="h-96 flex flex-col">
+    <Card className="h-full flex flex-col">
       <CardHeader className="pb-4">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-gradient-to-r from-primary to-green-500 rounded-full flex items-center justify-center">
