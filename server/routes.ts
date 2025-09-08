@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { extractTextFromFile } from "./fileParser";
+import { extractTextFromFile, type FileParseResult } from "./fileParser";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -174,8 +174,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Processing file upload: ${file.originalname} (${file.mimetype})`);
       
-      // Extract text content from the uploaded file
-      const parseResult = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
+      // Extract text content from the uploaded file with App Engine compatibility
+      let parseResult: FileParseResult;
+      try {
+        parseResult = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
+      } catch (parseError) {
+        // Fallback for complete parsing failure (e.g., PDF library issues on App Engine)
+        console.warn(`Complete file parsing failure for ${file.originalname}:`, parseError);
+        parseResult = {
+          content: `Document: ${file.originalname}
+File Type: ${file.mimetype}
+Size: ${(file.size / 1024).toFixed(1)} KB
+Category: ${category}
+
+[Document uploaded successfully but text extraction failed due to environment limitations.
+This document is available in the knowledge base and can be downloaded by users.
+For better search results, consider uploading the document as plain text or using a different format.]`,
+          error: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+        };
+      }
       
       if (parseResult.error) {
         console.warn(`File parsing warning for ${file.originalname}:`, parseResult.error);
