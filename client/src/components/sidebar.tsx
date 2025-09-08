@@ -25,7 +25,7 @@ export default function Sidebar() {
             <Brain className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Cognizant AI</h1>
+            <h1 className="text-lg font-semibold text-foreground">Pod 42 AI</h1>
             <p className="text-sm text-muted-foreground">Onboarding Platform</p>
           </div>
         </div>

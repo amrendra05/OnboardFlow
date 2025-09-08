@@ -1,4 +1,4 @@
--- Cognizant Employee Onboarding Platform Database Schema
+-- Pod 42 AI Employee Onboarding Platform Database Schema
 -- PostgreSQL Script for Local Development Setup
 --
 -- Run this script to create all required tables for the application
@@ -126,9 +126,9 @@ INSERT INTO users (username, password, role) VALUES
     ('hr_manager', '$2b$10$hash_here', 'hr');
 
 INSERT INTO employees (name, email, department, position, start_date, status, onboarding_stage) VALUES 
-    ('John Smith', 'john.smith@cognizant.com', 'Engineering', 'Senior Software Engineer', '2025-01-15', 'active', 'Pre-boarding'),
-    ('Sarah Johnson', 'sarah.johnson@cognizant.com', 'Product', 'Product Manager', '2025-01-20', 'active', 'Pre-boarding'),
-    ('Mike Wilson', 'mike.wilson@cognizant.com', 'Engineering', 'Frontend Developer', '2025-01-10', 'active', 'Pre-boarding');
+    ('John Smith', 'john.smith@pod42ai.com', 'Engineering', 'Senior Software Engineer', '2025-01-15', 'active', 'Pre-boarding'),
+    ('Sarah Johnson', 'sarah.johnson@pod42ai.com', 'Product', 'Product Manager', '2025-01-20', 'active', 'Pre-boarding'),
+    ('Mike Wilson', 'mike.wilson@pod42ai.com', 'Engineering', 'Frontend Developer', '2025-01-10', 'active', 'Pre-boarding');
 
 INSERT INTO documents (title, content, file_type, category, tags) VALUES 
     ('Employee Handbook 2025', 'Complete employee handbook with policies, procedures, and company information...', 'PDF', 'policies', '["handbook", "policies", "hr"]'),
