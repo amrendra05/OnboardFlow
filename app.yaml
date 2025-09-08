@@ -2,10 +2,10 @@ runtime: nodejs20
 
 env_variables:
   NODE_ENV: production
-  DATABASE_URL: "postgresql://username:password@private-ip:5432/database_name"
+  DATABASE_URL: "postgresql://username:password@PRIVATE_IP:5432/database_name"
   GROQ_API_KEY: "your-groq-api-key"
 
-# For Cloud SQL connection
+# For Cloud SQL connection - REQUIRED for private IP
 vpc_access_connector:
   name: "projects/YOUR_PROJECT_ID/locations/YOUR_REGION/connectors/YOUR_CONNECTOR_NAME"
 
