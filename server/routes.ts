@@ -3,6 +3,33 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import { extractTextFromFile } from "./fileParser";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Unsupported file type'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Employee routes
@@ -123,6 +150,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: "Invalid document data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create document" });
+    }
+  });
+
+  // File upload endpoint with text extraction
+  app.post("/api/documents/upload", upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      const { title, category, fileType, tags } = req.body;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      if (!title || !category || !fileType) {
+        return res.status(400).json({ 
+          error: "Missing required fields", 
+          details: "title, category, and fileType are required" 
+        });
+      }
+      
+      console.log(`Processing file upload: ${file.originalname} (${file.mimetype})`);
+      
+      // Extract text content from the uploaded file
+      const parseResult = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
+      
+      if (parseResult.error) {
+        console.warn(`File parsing warning for ${file.originalname}:`, parseResult.error);
+      }
+      
+      // Parse tags if provided
+      let parsedTags: string[] = [];
+      if (tags) {
+        try {
+          parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+        } catch (e) {
+          parsedTags = [];
+        }
+      }
+      
+      // Create document with extracted content
+      const documentData = {
+        title,
+        content: parseResult.content,
+        fileType,
+        category,
+        tags: parsedTags,
+      };
+      
+      const data = insertDocumentSchema.parse(documentData);
+      const document = await storage.createDocument(data);
+      
+      console.log(`Successfully created document: ${document.title} (${parseResult.content.length} chars)`);
+      
+      res.json({
+        ...document,
+        extractionStatus: parseResult.error ? 'partial' : 'success',
+        extractionMessage: parseResult.error || 'Text extracted successfully'
+      });
+      
+    } catch (error) {
+      console.error('File upload error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid document data", details: error.errors });
+      }
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ error: "File too large", details: "Maximum file size is 10MB" });
+        }
+        return res.status(400).json({ error: "File upload error", details: error.message });
       }
       res.status(500).json({ error: "Failed to create document" });
     }
