@@ -2,24 +2,19 @@ runtime: nodejs20
 
 env_variables:
   NODE_ENV: production
-  DATABASE_URL: "postgresql://username:password@PRIVATE_IP:5432/database_name"
-  GROQ_API_KEY: "your-groq-api-key"
+  DATABASE_URL: "postgresql://postgres:Password-1@10.3.112.3:5432/postgres"
+  GROQ_API_KEY: "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"
 
-# For Cloud SQL connection - REQUIRED for private IP
+# For Cloud SQL connection
 vpc_access_connector:
-  name: "projects/YOUR_PROJECT_ID/locations/YOUR_REGION/connectors/YOUR_CONNECTOR_NAME"
+  name: "projects/my-k8-project-435819/locations/europe-west4/connectors/my-vpc-db"
+#  egress_setting: all-traffic 
 
 # Optional: For larger file uploads
 automatic_scaling:
   max_instances: 10
   min_instances: 1
 
-# Handle Node.js build with dev dependencies
+# Handle Node.js build
 build_env_variables:
   NODE_ENV: development
-
-# Custom build commands to ensure dev dependencies are installed
-entrypoint: npm start
-
-# Optional: specify build command
-# You can also use .gcloudignore to optimize deployment
