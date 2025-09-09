@@ -11,9 +11,12 @@ entrypoint: npm start
 env_variables:
   NODE_ENV: "production"
   # Add your database connection string
-  # DATABASE_URL: "postgresql://user:password@host:port/database"
+  DATABASE_URL: "postgresql://postgres:Password-1@10.35.32.3:5432/postgres"
   # Add your Groq API key
-  # GROQ_API_KEY: "your-groq-api-key-here"
+  GROQ_API_KEY: "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"
+
+build_env_variables:
+  NODE_ENV: "development"
 
 automatic_scaling:
   min_instances: 1
@@ -41,3 +44,18 @@ liveness_check:
   failure_threshold: 4
   success_threshold: 2
 
+<<<<<<< HEAD
+=======
+# Skip files that don't need to be uploaded
+skip_files:
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$
+- ^(.*/)?node_modules/.*$
+- ^(.*/)?test/.*$
+- ^(.*/)?tests/.*$
+
+entrypoint: npm start
+>>>>>>> f663488 (app.yaml update)
