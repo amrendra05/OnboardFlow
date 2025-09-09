@@ -543,19 +543,35 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
       // Always use knowledge base documents when found - they are company-specific and authoritative
       hasRelevantKnowledge = true;
       
-      // Include more content from relevant documents
+      // Enhanced document context handling for both full content and metadata-only documents
       context = relevantDocs
         .slice(0, 5)
         .map(doc => {
-          const content = doc.content.length > 1000 ? 
-            doc.content.substring(0, 1000) + '...' : 
-            doc.content;
-          return `Document: "${doc.title}"\nCategory: ${doc.category}\nContent: ${content}`;
+          // Check if this is a document with limited extractable content (like PDFs in production)
+          const isLimitedContent = doc.content.includes('[This PDF document was uploaded successfully') ||
+                                   doc.content.includes('[PDF text extraction disabled') ||
+                                   doc.content.includes('[Document uploaded successfully but text extraction failed');
+          
+          if (isLimitedContent) {
+            // For documents with limited text extraction, provide rich metadata
+            return `Document: "${doc.title}"
+Category: ${doc.category}
+File Type: ${doc.fileType}
+Status: Available for download
+Content: This is a ${doc.fileType} document in the ${doc.category} category. The document is available in the knowledge base but text extraction was limited due to environment constraints. Users can download and view the complete document.`;
+          } else {
+            // For documents with full text content
+            const content = doc.content.length > 1000 ? 
+              doc.content.substring(0, 1000) + '...' : 
+              doc.content;
+            return `Document: "${doc.title}"\nCategory: ${doc.category}\nFile Type: ${doc.fileType}\nContent: ${content}`;
+          }
         })
         .join("\n\n---\n\n");
       
       console.log(`Found ${relevantDocs.length} relevant documents for query: "${message}"`);
       console.log(`Using documents: ${relevantDocs.map(d => d.title).join(', ')}`);
+      console.log(`Document types: ${relevantDocs.map(d => d.fileType).join(', ')}`);
     }
 
     // Step 2: If no relevant knowledge base content, use fallback
@@ -626,8 +642,18 @@ CRITICAL INSTRUCTIONS:
 - If these documents contain the answer, use them INSTEAD of any general knowledge
 - Be specific about which document contains the information
 - NEVER ignore or override information from these company documents
+
+HANDLING DOCUMENTS WITH LIMITED TEXT CONTENT:
+- Some documents (especially PDFs) may have limited text content due to technical constraints
+- When document content is limited, focus on the document title, category, and file type
+- Guide users to download or request access to the complete document when needed
+- Be helpful by explaining what type of information the document likely contains based on its title and category
+- Example: "The Security Training Guide (PDF) in the training category contains important security information. I recommend downloading it to view the complete content."
+
+RESPONSE GUIDELINES:
 - Keep responses informative but concise
-- Always apply the Code of Ethics above in your responses` : `No specific company documents found for this question.
+- Always apply the Code of Ethics above in your responses
+- Be honest about technical limitations while still being helpful` : `No specific company documents found for this question.
 
 Guidelines:
 - Be helpful, friendly, and professional
