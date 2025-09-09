@@ -42,43 +42,21 @@ export async function extractTextFromFile(fileBuffer: Buffer, mimeType: string, 
 }
 
 async function extractPDFText(buffer: Buffer): Promise<FileParseResult> {
-  // Check if we're in a production/serverless environment (App Engine)
-  const isProductionEnvironment = process.env.NODE_ENV === 'production' || 
-                                  process.env.GAE_APPLICATION || 
-                                  process.env.GAE_SERVICE;
+  // PDF text extraction is now handled client-side for better App Engine compatibility
+  // This server-side function is kept for legacy file upload endpoints
+  console.log('Server-side PDF parsing requested - recommend using client-side extraction instead');
   
-  if (isProductionEnvironment) {
-    // Skip PDF parsing entirely on App Engine to avoid file system issues
-    console.log('Skipping PDF text extraction in production environment (App Engine compatibility)');
-    return {
-      content: `PDF Document
-File size: ${(buffer.length / 1024).toFixed(1)} KB
+  return {
+    content: `PDF Document - Server-side Upload
+File size: ${(buffer.length / 1024 / 1024).toFixed(1)} MB
 
-[This PDF document was uploaded successfully to the knowledge base.
-Text extraction is disabled in the production environment for stability.
-Users can download and view the document directly.
-Document metadata and filename are still searchable by the AI assistant.]`,
-      error: 'PDF text extraction disabled in production environment'
-    };
-  }
-  
-  // Only attempt PDF parsing in development environment
-  try {
-    const pdfParse = (await import('pdf-parse')).default;
-    const pdfData = await pdfParse(buffer, { max: 0 });
-    return {
-      content: pdfData.text.trim() || '[PDF contains no extractable text]'
-    };
-  } catch (error) {
-    console.warn('PDF parsing failed in development environment:', error);
-    return {
-      content: `PDF Document (Development Environment - Parsing Failed)
-File size: ${(buffer.length / 1024).toFixed(1)} KB
+[PDF uploaded via server-side endpoint]
+[For best search results, use the client-side upload interface which extracts text in the browser]
+[This ensures full content searchability across all deployment environments]
 
-[PDF text extraction failed. Document metadata is still available for search.]`,
-      error: error instanceof Error ? error.message : 'Unknown PDF parsing error'
-    };
-  }
+Document is available for download and manual review.`,
+    error: 'Server-side PDF parsing deprecated - use client-side extraction for full content search'
+  };
 }
 
 async function extractDocText(buffer: Buffer): Promise<FileParseResult> {
