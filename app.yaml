@@ -2,12 +2,9 @@ runtime: nodejs20
 
 env_variables:
   NODE_ENV: production
-  DATABASE_URL: "postgresql://username:password@PRIVATE_IP:5432/database_name"
-  GROQ_API_KEY: "your-groq-api-key"
-
-# For Cloud SQL connection - REQUIRED for private IP
-vpc_access_connector:
-  name: "projects/YOUR_PROJECT_ID/locations/YOUR_REGION/connectors/YOUR_CONNECTOR_NAME"
+  # Use the replit DATABASE_URL which works in both development and App Engine
+  DATABASE_URL: ${DATABASE_URL}
+  GROQ_API_KEY: ${GROQ_API_KEY}
 
 # Optional: For larger file uploads
 automatic_scaling:
@@ -20,6 +17,3 @@ build_env_variables:
 
 # Custom build commands to ensure dev dependencies are installed
 entrypoint: npm start
-
-# Optional: specify build command
-# You can also use .gcloudignore to optimize deployment
