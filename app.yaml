@@ -7,6 +7,23 @@ build_env_variables:
 
 entrypoint: npm start
 
+# URL handlers
+handlers:
+  # API routes - handled by Node.js server
+  - url: /api/.*
+    script: auto
+    secure: always
+
+  # Static assets - served directly
+  - url: /assets/.*
+    static_dir: dist/assets
+    secure: always
+
+  # All other routes - SPA routing handled by Node.js
+  - url: /.*
+    script: auto
+    secure: always
+
 # VPC access connector for private resources (Cloud SQL, etc.)
 vpc_access_connector:
   name: "projects/YOUR_PROJECT_ID/locations/YOUR_REGION/connectors/YOUR_CONNECTOR_NAME"
