@@ -1,6 +1,13 @@
 runtime: nodejs20
 env: standard
 
+# Build the application before deployment
+build_env_variables:
+  NODE_ENV: "production"
+
+# Application entrypoint
+entrypoint: npm start
+
 env_variables:
   NODE_ENV: "production"
   # Add your database connection string
