@@ -1,61 +1,14 @@
-runtime: nodejs20
-env: standard
+app.yaml update
 
-# Build the application before deployment
-build_env_variables:
-  NODE_ENV: "production"
-
-# Application entrypoint
-entrypoint: npm start
-
-env_variables:
-  NODE_ENV: "production"
-  # Add your database connection string
-  DATABASE_URL: "postgresql://postgres:Password-1@10.35.32.3:5432/postgres"
-  # Add your Groq API key
-  GROQ_API_KEY: "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"
-
-build_env_variables:
-  NODE_ENV: "development"
-
-automatic_scaling:
-  min_instances: 1
-  max_instances: 10
-  target_cpu_utilization: 0.6
-
-resources:
-  cpu: 1
-  memory_gb: 0.5
-  disk_size_gb: 10
-
-# Optional: Configure health checks
-readiness_check:
-  path: "/api/health"
-  check_interval_sec: 5
-  timeout_sec: 4
-  failure_threshold: 2
-  success_threshold: 2
-  app_start_timeout_sec: 300
-
-liveness_check:
-  path: "/api/health"
-  check_interval_sec: 30
-  timeout_sec: 4
-  failure_threshold: 4
-  success_threshold: 2
-
-<<<<<<< HEAD
-=======
-# Skip files that don't need to be uploaded
-skip_files:
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.py[co]$
-- ^(.*/)?.*/RCS/.*$
-- ^(.*/)?\..*$
-- ^(.*/)?node_modules/.*$
-- ^(.*/)?test/.*$
-- ^(.*/)?tests/.*$
-
-entrypoint: npm start
->>>>>>> f663488 (app.yaml update)
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# interactive rebase in progress; onto aa0abd1
+# Last command done (1 command done):
+#    pick f663488 app.yaml update
+# No commands remaining.
+# You are currently rebasing branch 'main' on 'aa0abd1'.
+#
+# Changes to be committed:
+#	modified:   app.yaml
+#
