@@ -4,6 +4,7 @@ env_variables:
   NODE_ENV: production
   DATABASE_URL: ${DATABASE_URL}
   GROQ_API_KEY: ${GROQ_API_KEY}
+  PORT: ${PORT}
 
 # For larger file uploads
 automatic_scaling:
