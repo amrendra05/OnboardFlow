@@ -1,0 +1,19 @@
+runtime: nodejs20
+
+env_variables:
+  NODE_ENV: production
+  DATABASE_URL: ${DATABASE_URL}
+  GROQ_API_KEY: ${GROQ_API_KEY}
+  PORT: ${PORT}
+
+# For larger file uploads
+automatic_scaling:
+  max_instances: 10
+  min_instances: 1
+
+# Handle Node.js build with dev dependencies
+build_env_variables:
+  NODE_ENV: development
+
+# Let Node.js handle all serving - simpler and more reliable
+entrypoint: npm start
