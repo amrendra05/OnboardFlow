@@ -106,10 +106,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOnboardingProgress(insertProgress: InsertOnboardingProgress): Promise<OnboardingProgress> {
-    const [progress] = await db.insert(onboardingProgress).values({
-      ...insertProgress,
-      tasks: insertProgress.tasks || []
-    }).returning();
+    const [progress] = await db.insert(onboardingProgress).values(insertProgress).returning();
     return progress;
   }
 
@@ -121,7 +118,6 @@ export class DatabaseStorage implements IStorage {
       .update(onboardingProgress)
       .set({ 
         ...updates,
-        tasks: updates.tasks || undefined,
         lastUpdated: sql`now()` 
       })
       .where(eq(onboardingProgress.employeeId, employeeId))
@@ -159,10 +155,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const [document] = await db.insert(documents).values({
-      ...insertDocument,
-      tags: insertDocument.tags || []
-    }).returning();
+    const [document] = await db.insert(documents).values(insertDocument).returning();
     return document;
   }
 
@@ -255,10 +248,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createKnowledgeQuery(insertQuery: InsertKnowledgeQuery): Promise<KnowledgeQuery> {
-    const [query] = await db.insert(knowledgeQueries).values({
-      ...insertQuery,
-      results: insertQuery.results || []
-    }).returning();
+    const [query] = await db.insert(knowledgeQueries).values(insertQuery).returning();
     return query;
   }
 
