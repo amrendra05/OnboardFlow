@@ -16,7 +16,7 @@ handlers:
 
   # Static assets - served directly
   - url: /assets/.*
-    static_dir: dist/assets
+    static_dir: dist/public/assets
     secure: always
 
   # All other routes - SPA routing handled by Node.js

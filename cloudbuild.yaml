@@ -1,0 +1,16 @@
+steps:
+  # Install dependencies
+  - name: 'node:22'
+    entrypoint: 'npm'
+    args: ['ci']
+
+  # Run custom build script
+  - name: 'node:22'
+    entrypoint: 'bash'
+    args: ['./build.sh']
+
+  # Deploy to App Engine
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['app', 'deploy']
+    
+timeout: '1200s'
