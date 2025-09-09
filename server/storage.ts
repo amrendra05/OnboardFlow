@@ -106,10 +106,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOnboardingProgress(insertProgress: InsertOnboardingProgress): Promise<OnboardingProgress> {
-    const [progress] = await db.insert(onboardingProgress).values({
-      ...insertProgress,
-      tasks: insertProgress.tasks || []
-    }).returning();
+    const [progress] = await db.insert(onboardingProgress).values(insertProgress as any).returning();
     return progress;
   }
 
@@ -120,8 +117,7 @@ export class DatabaseStorage implements IStorage {
     const [progress] = await db
       .update(onboardingProgress)
       .set({ 
-        ...updates,
-        tasks: updates.tasks || undefined,
+        ...updates as any,
         lastUpdated: sql`now()` 
       })
       .where(eq(onboardingProgress.employeeId, employeeId))
@@ -159,10 +155,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const [document] = await db.insert(documents).values({
-      ...insertDocument,
-      tags: insertDocument.tags || []
-    }).returning();
+    const [document] = await db.insert(documents).values(insertDocument as any).returning();
     return document;
   }
 
@@ -309,10 +302,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createKnowledgeQuery(insertQuery: InsertKnowledgeQuery): Promise<KnowledgeQuery> {
-    const [query] = await db.insert(knowledgeQueries).values({
-      ...insertQuery,
-      results: insertQuery.results || []
-    }).returning();
+    const [query] = await db.insert(knowledgeQueries).values(insertQuery as any).returning();
     return query;
   }
 
