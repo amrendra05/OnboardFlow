@@ -13,6 +13,34 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Search, Upload, FileText, Filter, X, Brain } from "lucide-react";
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+// Function to extract text from PDF files
+async function extractPDFText(file: File): Promise<string> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str || '')
+        .filter(text => text.trim().length > 0)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+
+    return fullText.trim();
+  } catch (error) {
+    console.error('Error extracting PDF text:', error);
+    return `[PDF text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+  }
+}
 
 export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -47,17 +75,50 @@ export default function KnowledgeBase() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: { formData: FormData }) => {
-      const response = await fetch("/api/documents/upload", {
-        method: "POST",
-        body: data.formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+    mutationFn: async (data: { 
+      title: string; 
+      content: string; 
+      category: string; 
+      fileType: string; 
+      tags: string[];
+      file?: File;
+    }) => {
+      let extractedContent = data.content;
+
+      // If a file is provided, extract content based on type
+      if (data.file) {
+        const isPDF = data.file.name.toLowerCase().endsWith('.pdf');
+        
+        if (isPDF) {
+          try {
+            console.log('Extracting PDF text client-side...');
+            extractedContent = await extractPDFText(data.file);
+            console.log(`Extracted ${extractedContent.length} characters from PDF`);
+          } catch (error) {
+            console.error('PDF extraction failed:', error);
+            extractedContent = `[PDF Document - File size: ${(data.file.size / 1024 / 1024).toFixed(1)} MB]
+[Client-side text extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}]
+[Document uploaded but content may not be fully searchable]`;
+          }
+        } else {
+          // For non-PDF files, use a placeholder - server would handle these
+          extractedContent = `[${data.fileType.toUpperCase()} Document]
+File: ${data.file.name}
+Size: ${(data.file.size / 1024).toFixed(1)} KB
+
+[Content extraction not implemented for this file type in client-side processing]`;
+        }
       }
-      
+
+      // Use the direct API endpoint with extracted content
+      const response = await apiRequest("POST", "/api/documents", {
+        title: data.title,
+        content: extractedContent,
+        fileType: data.fileType.toUpperCase(),
+        category: data.category,
+        tags: data.tags,
+      });
+
       return response.json();
     },
     onSuccess: () => {
@@ -229,22 +290,17 @@ export default function KnowledgeBase() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('title', uploadForm.title);
-    formData.append('category', uploadForm.category);
-    formData.append('fileType', uploadForm.fileType);
-    formData.append('tags', JSON.stringify(uploadForm.tags));
-    
-    if (selectedFile) {
-      formData.append('file', selectedFile);
-    } else {
-      // If no file but has content, create a text file
-      const textBlob = new Blob([uploadForm.content], { type: 'text/plain' });
-      const textFile = new File([textBlob], `${uploadForm.title}.txt`, { type: 'text/plain' });
-      formData.append('file', textFile);
-    }
+    // Prepare data for the updated mutation
+    const uploadData = {
+      title: uploadForm.title,
+      content: uploadForm.content,
+      category: uploadForm.category,
+      fileType: uploadForm.fileType,
+      tags: uploadForm.tags,
+      file: selectedFile || undefined,
+    };
 
-    uploadMutation.mutate({ formData });
+    uploadMutation.mutate(uploadData);
   };
 
   const handleDocumentClick = (document: Document, event: React.MouseEvent) => {
@@ -466,7 +522,11 @@ export default function KnowledgeBase() {
                     disabled={uploadMutation.isPending}
                     data-testid="button-submit-upload"
                   >
-                    {uploadMutation.isPending ? "Uploading..." : "Upload Document"}
+                    {uploadMutation.isPending 
+                      ? (selectedFile?.name.toLowerCase().endsWith('.pdf') 
+                          ? "Extracting PDF text..." 
+                          : "Uploading...")
+                      : "Upload Document"}
                   </Button>
                 </div>
               </div>
