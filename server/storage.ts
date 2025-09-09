@@ -22,7 +22,7 @@ import {
   type InsertEmployeeDocument,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, like, or, sql } from "drizzle-orm";
+import { eq, desc, like, or, and, not, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -186,52 +186,106 @@ export class DatabaseStorage implements IStorage {
         return recentDocs;
       }
 
-      // Use simpler LIKE search to avoid SQL syntax issues
-      const searchConditions = keywords.map(keyword => 
-        or(
-          like(documents.title, `%${keyword}%`),
-          like(documents.content, `%${keyword}%`),
-          like(documents.category, `%${keyword}%`)
-        )
-      );
-
-      console.log(`[SEARCH] Executing search with ${searchConditions.length} conditions`);
-      const results = await db
-        .select()
-        .from(documents)
-        .where(or(...searchConditions))
-        .orderBy(desc(documents.updatedAt));
-
-      console.log(`[SEARCH] Found ${results.length} documents`);
-
-      // If no exact matches, try broader search with shorter keywords
-      if (results.length === 0 && keywords.length > 0) {
-        console.log(`[SEARCH] No results, trying broader search`);
-        const broaderKeywords = query.toLowerCase().split(' ').filter(word => word.length > 1);
-        const broaderConditions = broaderKeywords.map(keyword => 
-          or(
-            like(documents.title, `%${keyword}%`),
-            like(documents.content, `%${keyword}%`),
-            like(documents.category, `%${keyword}%`)
-          )
-        );
-
-        const broaderResults = await db
+      // Enhanced search strategy - prioritize title and category over content for App Engine compatibility
+      console.log(`[SEARCH] Executing enhanced search with ${keywords.length} keywords`);
+      
+      // Strategy 1: Priority search on title and category (most important for PDFs with limited content)
+      const priorityResults = [];
+      for (const keyword of keywords) {
+        const titleCategoryResults = await db
           .select()
           .from(documents)
-          .where(or(...broaderConditions))
-          .orderBy(desc(documents.updatedAt))
-          .limit(5);
+          .where(
+            or(
+              like(documents.title, `%${keyword}%`),
+              like(documents.category, `%${keyword}%`)
+            )
+          )
+          .orderBy(desc(documents.updatedAt));
         
-        console.log(`[SEARCH] Broader search found ${broaderResults.length} documents`);
-        return broaderResults;
+        priorityResults.push(...titleCategoryResults);
       }
 
-      if (results.length > 0) {
-        console.log(`[SEARCH] Document titles found:`, results.map(d => d.title));
+      // Remove duplicates
+      const uniquePriorityResults = priorityResults.filter((doc, index, arr) => 
+        arr.findIndex(d => d.id === doc.id) === index
+      );
+
+      console.log(`[SEARCH] Priority search (title/category) found ${uniquePriorityResults.length} documents`);
+
+      // Strategy 2: Content search (for documents with full text)
+      const contentResults = [];
+      for (const keyword of keywords) {
+        const contentSearchResults = await db
+          .select()
+          .from(documents)
+          .where(
+            and(
+              like(documents.content, `%${keyword}%`),
+              not(like(documents.content, '%[This PDF document was uploaded successfully%')),
+              not(like(documents.content, '%[PDF text extraction disabled%')),
+              not(like(documents.content, '%[Document uploaded successfully but text extraction failed%'))
+            )
+          )
+          .orderBy(desc(documents.updatedAt));
+        
+        contentResults.push(...contentSearchResults);
       }
+
+      // Remove duplicates from content search
+      const uniqueContentResults = contentResults.filter((doc, index, arr) => 
+        arr.findIndex(d => d.id === doc.id) === index
+      );
+
+      console.log(`[SEARCH] Content search found ${uniqueContentResults.length} documents`);
+
+      // Combine results with priority order
+      const allResults = [...uniquePriorityResults];
       
-      return results;
+      // Add content results that aren't already included
+      for (const contentDoc of uniqueContentResults) {
+        if (!allResults.find(doc => doc.id === contentDoc.id)) {
+          allResults.push(contentDoc);
+        }
+      }
+
+      console.log(`[SEARCH] Combined search found ${allResults.length} total documents`);
+
+      if (allResults.length > 0) {
+        console.log(`[SEARCH] Document titles found:`, allResults.map(d => d.title));
+        return allResults.slice(0, 10); // Limit to top 10 results
+      }
+
+      // Strategy 3: Broader search with shorter keywords if no results
+      console.log(`[SEARCH] No results, trying broader search`);
+      const broaderKeywords = query.toLowerCase().split(' ').filter(word => word.length > 1);
+      const broaderResults = [];
+      
+      for (const keyword of broaderKeywords) {
+        const broaderSearchResults = await db
+          .select()
+          .from(documents)
+          .where(
+            or(
+              like(documents.title, `%${keyword}%`),
+              like(documents.category, `%${keyword}%`),
+              like(documents.content, `%${keyword}%`)
+            )
+          )
+          .orderBy(desc(documents.updatedAt))
+          .limit(3);
+        
+        broaderResults.push(...broaderSearchResults);
+      }
+
+      // Remove duplicates from broader search
+      const uniqueBroaderResults = broaderResults.filter((doc, index, arr) => 
+        arr.findIndex(d => d.id === doc.id) === index
+      );
+      
+      console.log(`[SEARCH] Broader search found ${uniqueBroaderResults.length} documents`);
+      return uniqueBroaderResults.slice(0, 5);
+      
     } catch (error) {
       console.error(`[SEARCH] Search failed:`, error);
       // Fallback: return all documents if search fails
