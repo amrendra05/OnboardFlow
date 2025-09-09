@@ -20,7 +20,7 @@ import {
   type InsertKnowledgeQuery,
   type EmployeeDocument,
   type InsertEmployeeDocument,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db";
 import { eq, desc, like, or, and, not, sql } from "drizzle-orm";
 
