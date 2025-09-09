@@ -1,5 +1,3 @@
-runtime: nodejs20
-
 # Handle static files directly with App Engine
 handlers:
   # Serve static assets
