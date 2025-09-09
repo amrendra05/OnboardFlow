@@ -42,21 +42,16 @@ export async function extractTextFromFile(fileBuffer: Buffer, mimeType: string, 
 }
 
 async function extractPDFText(buffer: Buffer): Promise<FileParseResult> {
-  // PDF text extraction is now handled client-side for better App Engine compatibility
-  // This server-side function is kept for legacy file upload endpoints
-  console.log('Server-side PDF parsing requested - recommend using client-side extraction instead');
-  
-  return {
-    content: `PDF Document - Server-side Upload
-File size: ${(buffer.length / 1024 / 1024).toFixed(1)} MB
-
-[PDF uploaded via server-side endpoint]
-[For best search results, use the client-side upload interface which extracts text in the browser]
-[This ensures full content searchability across all deployment environments]
-
-Document is available for download and manual review.`,
-    error: 'Server-side PDF parsing deprecated - use client-side extraction for full content search'
-  };
+  try {
+    // Dynamic import to avoid the test file issue
+    const pdfParse = (await import('pdf-parse')).default;
+    const pdfData = await pdfParse(buffer);
+    return {
+      content: pdfData.text.trim() || '[PDF contains no extractable text]'
+    };
+  } catch (error) {
+    throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 async function extractDocText(buffer: Buffer): Promise<FileParseResult> {

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChatAssistant from "@/components/chat-assistant";
-import type { Employee } from "../../../shared/schema.js";
+import type { Employee } from "@shared/schema";
 
 export default function AIAssistant() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("540dd7fe-a72e-4a86-a996-e61ee9eb10c9");

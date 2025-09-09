@@ -1,12 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Employee as EmployeeBase, Document } from "../../../shared/schema.js";
-
-// API types have string dates (JSON serialized) and null values, not Date objects and undefined
-type APIEmployee = Omit<EmployeeBase, 'startDate' | 'createdAt' | 'avatarUrl'> & {
-  startDate: string;
-  createdAt: string | null;
-  avatarUrl: string | null;
-};
+import type { Employee, Document } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +11,7 @@ import DocumentUpload from "@/components/document-upload";
 import OnboardingWorkflow from "@/components/onboarding-workflow";
 
 export default function Dashboard() {
-  const { data: employees = [] } = useQuery<APIEmployee[]>({
+  const { data: employees = [] } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 

@@ -1,10 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema } from "../shared/schema.js";
+import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
-import { extractTextFromFile, type FileParseResult } from "./fileParser";
+import { extractTextFromFile } from "./fileParser";
 
 // Configure multer for file uploads
 const upload = multer({
@@ -174,25 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Processing file upload: ${file.originalname} (${file.mimetype})`);
       
-      // Extract text content from the uploaded file with App Engine compatibility
-      let parseResult: FileParseResult;
-      try {
-        parseResult = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
-      } catch (parseError) {
-        // Fallback for complete parsing failure (e.g., PDF library issues on App Engine)
-        console.warn(`Complete file parsing failure for ${file.originalname}:`, parseError);
-        parseResult = {
-          content: `Document: ${file.originalname}
-File Type: ${file.mimetype}
-Size: ${(file.size / 1024).toFixed(1)} KB
-Category: ${category}
-
-[Document uploaded successfully but text extraction failed due to environment limitations.
-This document is available in the knowledge base and can be downloaded by users.
-For better search results, consider uploading the document as plain text or using a different format.]`,
-          error: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
-        };
-      }
+      // Extract text content from the uploaded file
+      const parseResult = await extractTextFromFile(file.buffer, file.mimetype, file.originalname);
       
       if (parseResult.error) {
         console.warn(`File parsing warning for ${file.originalname}:`, parseResult.error);
@@ -543,54 +526,19 @@ async function generateAIResponse(message: string, employeeId: string): Promise<
       // Always use knowledge base documents when found - they are company-specific and authoritative
       hasRelevantKnowledge = true;
       
-      // Enhanced document context handling for both full content and metadata-only documents
+      // Include more content from relevant documents
       context = relevantDocs
         .slice(0, 5)
         .map(doc => {
-          // Check if this is a document with limited extractable content (like PDFs in production)
-          const isLimitedContent = doc.content.includes('[This PDF document was uploaded successfully') ||
-                                   doc.content.includes('[PDF text extraction disabled') ||
-                                   doc.content.includes('[Document uploaded successfully but text extraction failed');
-          
-          if (isLimitedContent) {
-            // For documents with limited text extraction, provide helpful context based on title and category
-            let estimatedContent = "";
-            const title = doc.title.toLowerCase();
-            const category = doc.category.toLowerCase();
-            
-            // Provide helpful context based on document title and category
-            if (title.includes('handbook') || title.includes('guide') || category.includes('policies')) {
-              estimatedContent = "This document contains comprehensive company policies, procedures, and guidelines.";
-            } else if (title.includes('training') || category.includes('training')) {
-              estimatedContent = "This document contains training materials, protocols, and certification requirements.";
-            } else if (title.includes('security') || title.includes('safety')) {
-              estimatedContent = "This document contains important security protocols, safety procedures, and compliance requirements.";
-            } else if (title.includes('benefits') || title.includes('compensation')) {
-              estimatedContent = "This document contains information about employee benefits, compensation, and workplace policies.";
-            } else if (category.includes('forms') || title.includes('form')) {
-              estimatedContent = "This document contains important forms and templates for employee use.";
-            } else {
-              estimatedContent = `This ${doc.fileType} document in the ${doc.category} category contains valuable company information.`;
-            }
-            
-            return `Document: "${doc.title}"
-Category: ${doc.category}
-File Type: ${doc.fileType}
-Status: Available for download from knowledge base
-Content Summary: ${estimatedContent} The complete document is accessible for download and contains detailed information relevant to ${doc.category}.`;
-          } else {
-            // For documents with full text content
-            const content = doc.content.length > 1000 ? 
-              doc.content.substring(0, 1000) + '...' : 
-              doc.content;
-            return `Document: "${doc.title}"\nCategory: ${doc.category}\nFile Type: ${doc.fileType}\nContent: ${content}`;
-          }
+          const content = doc.content.length > 1000 ? 
+            doc.content.substring(0, 1000) + '...' : 
+            doc.content;
+          return `Document: "${doc.title}"\nCategory: ${doc.category}\nContent: ${content}`;
         })
         .join("\n\n---\n\n");
       
       console.log(`Found ${relevantDocs.length} relevant documents for query: "${message}"`);
       console.log(`Using documents: ${relevantDocs.map(d => d.title).join(', ')}`);
-      console.log(`Document types: ${relevantDocs.map(d => d.fileType).join(', ')}`);
     }
 
     // Step 2: If no relevant knowledge base content, use fallback
@@ -609,7 +557,7 @@ Content Summary: ${estimatedContent} The complete document is accessible for dow
       // }
     }
 
-    const systemPrompt = `You are an AI assistant for Pod 42 AI's employee onboarding platform. You help new employees with onboarding questions, company policies, project information, and technical setup.
+    const systemPrompt = `You are an AI assistant for Cognizant's employee onboarding platform. You help new employees with onboarding questions, company policies, project information, and technical setup.
 
 CODE OF ETHICS AND PROFESSIONAL CONDUCT:
 You must always adhere to the following ethical principles:
@@ -655,33 +603,14 @@ ${context}
 
 CRITICAL INSTRUCTIONS:
 - ALWAYS prioritize and use the company documents above as your PRIMARY and AUTHORITATIVE source
-- These documents contain Pod 42 AI's official policies, procedures, and guidelines
+- These documents contain Cognizant's official policies, procedures, and guidelines
 - Quote directly from these documents when relevant
 - Reference specific document titles when citing information (e.g., "According to the Employee Handbook 2025...")
 - If these documents contain the answer, use them INSTEAD of any general knowledge
 - Be specific about which document contains the information
 - NEVER ignore or override information from these company documents
-
-HANDLING DOCUMENTS WITH LIMITED TEXT CONTENT:
-- NEVER tell users you "can't extract content" or that there are "technical limitations"
-- Instead, focus on being helpful and providing value based on the document's title, category, and purpose
-- When you find relevant documents, always present them as valuable resources
-- Guide users positively: "I found the [Document Title] which covers [likely content based on title/category]"
-- Always offer to help users access the complete document: "You can download this document from the knowledge base to view all the details"
-- Be specific about what the document likely contains based on its title and category
-- Frame responses as solutions, not limitations
-
-POSITIVE RESPONSE EXAMPLES:
-- Instead of: "I can't extract the PDF content"
-- Say: "I found the Employee Handbook 2025 in our policies section. This comprehensive guide covers company policies, procedures, and employee benefits. You can download it from the knowledge base to access all the detailed information."
-
-- Instead of: "Text extraction failed"
-- Say: "The Security Training Guide contains important information about our security protocols, VPN usage, and compliance requirements. I recommend downloading it to review the complete training materials."
-
-RESPONSE GUIDELINES:
 - Keep responses informative but concise
-- Always apply the Code of Ethics above in your responses
-- Be honest about technical limitations while still being helpful` : `No specific company documents found for this question.
+- Always apply the Code of Ethics above in your responses` : `No specific company documents found for this question.
 
 Guidelines:
 - Be helpful, friendly, and professional

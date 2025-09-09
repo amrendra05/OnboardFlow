@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { BarChart3, Users, Clock, CheckCircle, TrendingUp, Calendar } from "lucide-react";
-import type { Employee } from "../../../shared/schema.js";
+import type { Employee } from "@shared/schema";
 
 export default function Analytics() {
   const { data: employees = [] } = useQuery<Employee[]>({
