@@ -15,18 +15,9 @@ import { apiRequest } from "@/lib/queryClient";
 import { Search, Upload, FileText, Filter, X, Brain } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker for production compatibility
-// Use bundled worker instead of CDN to avoid external dependencies
-try {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
-    import.meta.url
-  ).toString();
-} catch (error) {
-  console.warn('Failed to configure PDF.js worker, using fallback:', error);
-  // Fallback to CDN only if local worker fails
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-}
+// Configure PDF.js worker for App Engine production compatibility
+// Use CDN-hosted worker to ensure availability in all environments
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 // Function to extract text from PDF files
 async function extractPDFText(file: File): Promise<string> {
