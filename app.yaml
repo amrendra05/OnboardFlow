@@ -1,0 +1,46 @@
+runtime: nodejs20
+env: standard
+
+env_variables:
+  NODE_ENV: "production"
+  # Add your database connection string
+  # DATABASE_URL: "postgresql://user:password@host:port/database"
+  # Add your Groq API key
+  # GROQ_API_KEY: "your-groq-api-key-here"
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 10
+  target_cpu_utilization: 0.6
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10
+
+# Optional: Configure health checks
+readiness_check:
+  path: "/api/health"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+  app_start_timeout_sec: 300
+
+liveness_check:
+  path: "/api/health"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 4
+  success_threshold: 2
+
+# Skip files that don't need to be uploaded
+skip_files:
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$
+- ^(.*/)?node_modules/.*$
+- ^(.*/)?test/.*$
+- ^(.*/)?tests/.*$
