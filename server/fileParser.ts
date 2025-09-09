@@ -42,42 +42,42 @@ export async function extractTextFromFile(fileBuffer: Buffer, mimeType: string, 
 }
 
 async function extractPDFText(buffer: Buffer): Promise<FileParseResult> {
-  try {
-    // Dynamic import with error handling for App Engine compatibility
-    const pdfParse = (await import('pdf-parse')).default;
-    
-    // Configure pdf-parse options for App Engine compatibility
-    const options = {
-      max: 0, // Parse all pages
+  // Check if we're in a production/serverless environment (App Engine)
+  const isProductionEnvironment = process.env.NODE_ENV === 'production' || 
+                                  process.env.GAE_APPLICATION || 
+                                  process.env.GAE_SERVICE;
+  
+  if (isProductionEnvironment) {
+    // Skip PDF parsing entirely on App Engine to avoid file system issues
+    console.log('Skipping PDF text extraction in production environment (App Engine compatibility)');
+    return {
+      content: `PDF Document
+File size: ${(buffer.length / 1024).toFixed(1)} KB
+
+[This PDF document was uploaded successfully to the knowledge base.
+Text extraction is disabled in the production environment for stability.
+Users can download and view the document directly.
+Document metadata and filename are still searchable by the AI assistant.]`,
+      error: 'PDF text extraction disabled in production environment'
     };
-    
-    const pdfData = await pdfParse(buffer, options);
+  }
+  
+  // Only attempt PDF parsing in development environment
+  try {
+    const pdfParse = (await import('pdf-parse')).default;
+    const pdfData = await pdfParse(buffer, { max: 0 });
     return {
       content: pdfData.text.trim() || '[PDF contains no extractable text]'
     };
   } catch (error) {
-    // Handle specific ENOENT errors for test files
-    if (error instanceof Error && error.message.includes('ENOENT') && error.message.includes('test/data')) {
-      console.warn('PDF-parse test file access issue (App Engine compatibility), falling back to basic text extraction');
-      try {
-        // Fallback: Try again with minimal configuration
-        const pdfParse = (await import('pdf-parse')).default;
-        const pdfData = await pdfParse(buffer, { max: 1 }); // Only parse first page as fallback
-        return {
-          content: pdfData.text.trim() || '[PDF parsing succeeded but no text extracted]',
-          error: 'Partial parsing due to environment limitations'
-        };
-      } catch (fallbackError) {
-        return {
-          content: `[PDF file detected but text extraction failed due to App Engine limitations]
+    console.warn('PDF parsing failed in development environment:', error);
+    return {
+      content: `PDF Document (Development Environment - Parsing Failed)
 File size: ${(buffer.length / 1024).toFixed(1)} KB
-This is a known limitation with PDF parsing in serverless environments.`,
-          error: 'PDF parsing not supported in this environment'
-        };
-      }
-    }
-    
-    throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+[PDF text extraction failed. Document metadata is still available for search.]`,
+      error: error instanceof Error ? error.message : 'Unknown PDF parsing error'
+    };
   }
 }
 
