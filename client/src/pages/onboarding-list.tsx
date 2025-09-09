@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Users, FileText, Calendar, Clock, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
-import type { Employee, OnboardingProgress, EmployeeDocument } from "@shared/schema";
+import type { Employee, OnboardingProgress, EmployeeDocument } from "../../../shared/schema.js";
 
 interface EmployeeWithProgress extends Employee {
   onboardingProgress?: OnboardingProgress[];

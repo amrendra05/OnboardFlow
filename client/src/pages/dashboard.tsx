@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Employee, Document } from "@shared/schema";
+import type { Employee, Document } from "../../../shared/schema.js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

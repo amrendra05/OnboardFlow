@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useLocation } from "wouter";
-import type { Employee, OnboardingProgress, EmployeeDocument } from "@shared/schema";
+import type { Employee, OnboardingProgress, EmployeeDocument } from "../../../shared/schema.js";
 
 interface EmployeeWithDetails extends Employee {
   onboardingProgress?: OnboardingProgress[];

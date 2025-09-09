@@ -14,7 +14,7 @@ import { CalendarIcon, UserPlus, Upload, FileText, X } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { insertEmployeeSchema } from "@shared/schema";
+import { insertEmployeeSchema } from "../../../shared/schema.js";
 
 const formSchema = insertEmployeeSchema.extend({
   startDate: z.date({
