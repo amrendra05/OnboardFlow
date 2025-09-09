@@ -41,13 +41,3 @@ liveness_check:
   failure_threshold: 4
   success_threshold: 2
 
-# Skip files that don't need to be uploaded
-skip_files:
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.py[co]$
-- ^(.*/)?.*/RCS/.*$
-- ^(.*/)?\..*$
-- ^(.*/)?node_modules/.*$
-- ^(.*/)?test/.*$
-- ^(.*/)?tests/.*$
