@@ -1,5 +1,23 @@
 runtime: nodejs20
 
+# Handle static files directly with App Engine
+handlers:
+  # Serve static assets
+  - url: /assets/.*
+    static_dir: dist/public/assets
+    secure: always
+    
+  # Serve favicon and other root level static files
+  - url: /(.*\.(ico|png|jpg|gif|css|js|woff|woff2|ttf|eot|svg))$
+    static_files: dist/public/\1
+    upload: dist/public/.*\.(ico|png|jpg|gif|css|js|woff|woff2|ttf|eot|svg)$
+    secure: always
+    
+  # Handle all other requests with the Node.js app
+  - url: /.*
+    script: auto
+    secure: always
+
 env_variables:
   NODE_ENV: production
   # Use the replit DATABASE_URL which works in both development and App Engine
