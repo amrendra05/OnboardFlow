@@ -62,10 +62,18 @@ export default function Tasks() {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: (data: TaskFormData) => apiRequest("/api/tasks", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
+    mutationFn: (data: TaskFormData) => {
+      // Convert date string to Date object for proper serialization
+      const processedData = {
+        ...data,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        assignedTo: data.assignedTo === "unassigned" ? null : data.assignedTo,
+      };
+      return apiRequest("/api/tasks", {
+        method: "POST",
+        body: JSON.stringify(processedData),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/stats"] });
