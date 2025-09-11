@@ -329,10 +329,10 @@ export default function Tasks() {
                           <FormControl>
                             <Input 
                               data-testid="input-task-due-date"
-                              type="datetime-local" 
+                              type="date" 
                               {...field} 
-                              value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                              onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                              value={field.value || ""}
+                              onChange={(e) => field.onChange(e.target.value || null)}
                             />
                           </FormControl>
                           <FormMessage />
