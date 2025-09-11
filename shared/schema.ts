@@ -74,6 +74,24 @@ export const employeeDocuments = pgTable("employee_documents", {
   uploadedAt: timestamp("uploaded_at").default(sql`now()`),
 });
 
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("open"), // 'open' | 'in_progress' | 'blocked' | 'completed'
+  priority: text("priority").notNull().default("medium"), // 'critical' | 'high' | 'medium' | 'low'
+  dueDate: timestamp("due_date"),
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  targetEmployeeId: varchar("target_employee_id").references(() => employees.id),
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  source: text("source").notNull().default("manual"), // 'manual' | 'ai'
+  claimedByAgentId: text("claimed_by_agent_id"),
+  claimExpiresAt: timestamp("claim_expires_at"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
 // Relations
 export const employeesRelations = relations(employees, ({ many }) => ({
   onboardingProgress: many(onboardingProgress),
@@ -117,6 +135,21 @@ export const employeeDocumentsRelations = relations(employeeDocuments, ({ one })
   }),
 }));
 
+export const tasksRelations = relations(tasks, ({ one }) => ({
+  assignedTo: one(users, {
+    fields: [tasks.assignedTo],
+    references: [users.id],
+  }),
+  createdBy: one(users, {
+    fields: [tasks.createdBy],
+    references: [users.id],
+  }),
+  targetEmployee: one(employees, {
+    fields: [tasks.targetEmployeeId],
+    references: [employees.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -154,6 +187,14 @@ export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments
   uploadedAt: true,
 });
 
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  claimExpiresAt: true,
+  claimedByAgentId: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -175,3 +216,6 @@ export type InsertKnowledgeQuery = z.infer<typeof insertKnowledgeQuerySchema>;
 
 export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
 export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
