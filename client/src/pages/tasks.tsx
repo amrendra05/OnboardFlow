@@ -57,6 +57,7 @@ export default function Tasks() {
       createdBy: "current-user", // In real app, get from auth
       source: "manual",
       tags: [],
+      assignedTo: "unassigned",
     },
   });
 
@@ -124,10 +125,10 @@ export default function Tasks() {
     
     // Assignee filter
     if (assigneeFilter !== "all") {
-      if (assigneeFilter === "" && task.assignedTo !== null) {
+      if (assigneeFilter === "unassigned" && task.assignedTo !== null) {
         return false; // Show only unassigned
       }
-      if (assigneeFilter !== "" && task.assignedTo !== assigneeFilter) {
+      if (assigneeFilter !== "unassigned" && task.assignedTo !== assigneeFilter) {
         return false; // Show only tasks assigned to specific person
       }
     }
@@ -308,7 +309,7 @@ export default function Tasks() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="" data-testid="select-item-assignee-unassigned">Unassigned</SelectItem>
+                              <SelectItem value="unassigned" data-testid="select-item-assignee-unassigned">Unassigned</SelectItem>
                               {employees.map((employee) => (
                                 <SelectItem key={employee.id} value={employee.id} data-testid={`select-item-assignee-${employee.id}`}>
                                   {employee.name}
@@ -445,7 +446,7 @@ export default function Tasks() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" data-testid="filter-assignee-all">All Assignees</SelectItem>
-              <SelectItem value="" data-testid="filter-assignee-unassigned">Unassigned</SelectItem>
+              <SelectItem value="unassigned" data-testid="filter-assignee-unassigned">Unassigned</SelectItem>
               {employees.map((employee) => (
                 <SelectItem key={employee.id} value={employee.id} data-testid={`filter-assignee-${employee.id}`}>
                   {employee.name}
