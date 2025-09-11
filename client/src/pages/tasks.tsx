@@ -58,10 +58,10 @@ export default function Tasks() {
 
   const createTaskMutation = useMutation({
     mutationFn: (data: TaskFormData) => {
-      // Convert date string to Date object for proper serialization
+      // Convert date string to proper Date object for database timestamp
       const processedData = {
         ...data,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        dueDate: data.dueDate ? new Date(data.dueDate + 'T00:00:00') : null,
         assignedTo: data.assignedTo === "unassigned" ? null : data.assignedTo,
       };
       return apiRequest("POST", "/api/tasks", processedData);
