@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertDocumentSchema, insertChatMessageSchema, insertTaskSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import { extractTextFromFile } from "./fileParser";
@@ -500,6 +500,168 @@ startxref
       res.json(results);
     } catch (error) {
       res.status(500).json({ error: "Failed to search knowledge base" });
+    }
+  });
+
+  // Task management routes
+  app.get("/api/tasks", async (req, res) => {
+    try {
+      const { status, priority, assignedTo, search, employeeId, overdue } = req.query;
+      
+      const filters: any = {};
+      if (status) filters.status = status as string;
+      if (priority) filters.priority = priority as string;
+      if (assignedTo) filters.assignedTo = assignedTo as string;
+      if (search) filters.search = search as string;
+      if (employeeId) filters.employeeId = employeeId as string;
+      if (overdue) filters.overdue = overdue === 'true';
+      
+      const tasks = await storage.getTasks(Object.keys(filters).length > 0 ? filters : undefined);
+      res.json(tasks);
+    } catch (error) {
+      console.error('Get tasks error:', error);
+      res.status(500).json({ error: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/tasks/:id", async (req, res) => {
+    try {
+      const task = await storage.getTask(req.params.id);
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      res.json(task);
+    } catch (error) {
+      console.error('Get task error:', error);
+      res.status(500).json({ error: "Failed to fetch task" });
+    }
+  });
+
+  app.post("/api/tasks", async (req, res) => {
+    try {
+      const data = insertTaskSchema.parse(req.body);
+      const task = await storage.createTask(data);
+      res.json(task);
+    } catch (error) {
+      console.error('Create task error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid task data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.patch("/api/tasks/:id", async (req, res) => {
+    try {
+      // Only allow updating specific fields, exclude protected fields
+      const allowedFields = insertTaskSchema.partial().omit({ 
+        claimedByAgentId: true, 
+        claimExpiresAt: true 
+      });
+      
+      const updates = allowedFields.parse(req.body);
+      const task = await storage.updateTask(req.params.id, updates);
+      
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error('Update task error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid task data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.post("/api/tasks/:id/complete", async (req, res) => {
+    try {
+      const task = await storage.completeTask(req.params.id);
+      
+      if (!task) {
+        return res.status(404).json({ error: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error('Complete task error:', error);
+      res.status(500).json({ error: "Failed to complete task" });
+    }
+  });
+
+  // AI Agent endpoints
+  app.post("/api/tasks/:id/claim", async (req, res) => {
+    try {
+      const { agentId, leaseSeconds = 3600 } = req.body; // Default 1 hour lease
+      
+      if (!agentId || typeof agentId !== 'string') {
+        return res.status(400).json({ error: "agentId is required and must be a string" });
+      }
+      
+      // Validate lease seconds
+      const lease = parseInt(leaseSeconds);
+      if (isNaN(lease) || lease < 1 || lease > 86400) {
+        return res.status(400).json({ 
+          error: "leaseSeconds must be a number between 1 and 86400 (24 hours)" 
+        });
+      }
+      
+      const task = await storage.claimTask(req.params.id, agentId, lease);
+      
+      if (!task) {
+        return res.status(409).json({ 
+          error: "Task could not be claimed", 
+          message: "Task may be already claimed, not open, or does not exist" 
+        });
+      }
+      
+      res.json(task);
+    } catch (error) {
+      console.error('Claim task error:', error);
+      if (error instanceof Error && error.message === 'Invalid lease duration') {
+        return res.status(400).json({ error: "Invalid lease duration" });
+      }
+      res.status(500).json({ error: "Failed to claim task" });
+    }
+  });
+
+  app.get("/api/tasks/recommendations", async (req, res) => {
+    try {
+      const { userId, role, department, scope, limit = 10 } = req.query;
+      
+      const agentContext: any = {};
+      if (userId) agentContext.userId = userId as string;
+      if (role) agentContext.role = role as string;
+      if (department) agentContext.department = department as string;
+      if (scope) {
+        try {
+          agentContext.scope = JSON.parse(scope as string);
+        } catch (e) {
+          agentContext.scope = (scope as string).split(',').map(s => s.trim());
+        }
+      }
+      
+      // Validate and limit the limit parameter
+      const limitNum = parseInt(limit as string) || 10;
+      const safeLimit = Math.min(Math.max(limitNum, 1), 100); // Between 1 and 100
+      
+      const tasks = await storage.recommendTasksForAgent(agentContext, safeLimit);
+      res.json(tasks);
+    } catch (error) {
+      console.error('Get task recommendations error:', error);
+      res.status(500).json({ error: "Failed to get task recommendations" });
+    }
+  });
+
+  app.get("/api/tasks/stats", async (req, res) => {
+    try {
+      const stats = await storage.getTaskStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Get task stats error:', error);
+      res.status(500).json({ error: "Failed to get task statistics" });
     }
   });
 
