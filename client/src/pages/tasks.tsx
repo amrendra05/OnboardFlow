@@ -29,12 +29,7 @@ export default function Tasks() {
 
   // Fetch tasks with filters
   const { data: tasks = [], isLoading } = useQuery<Task[]>({
-    queryKey: ["/api/tasks", { 
-      search: searchQuery || undefined,
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      priority: priorityFilter !== "all" ? priorityFilter : undefined,
-      assignedTo: assigneeFilter !== "all" ? assigneeFilter : undefined
-    }],
+    queryKey: ["/api/tasks"],
   });
 
   // Fetch employees for assignment dropdown
@@ -69,10 +64,7 @@ export default function Tasks() {
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
         assignedTo: data.assignedTo === "unassigned" ? null : data.assignedTo,
       };
-      return apiRequest("/api/tasks", {
-        method: "POST",
-        body: JSON.stringify(processedData),
-      });
+      return apiRequest("POST", "/api/tasks", processedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -94,9 +86,7 @@ export default function Tasks() {
   });
 
   const completeTaskMutation = useMutation({
-    mutationFn: (taskId: string) => apiRequest(`/api/tasks/${taskId}/complete`, {
-      method: "POST",
-    }),
+    mutationFn: (taskId: string) => apiRequest("POST", `/api/tasks/${taskId}/complete`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/stats"] });
