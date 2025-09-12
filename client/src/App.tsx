@@ -10,6 +10,7 @@ import AIAssistant from "@/pages/ai-assistant";
 import OnboardingList from "@/pages/onboarding-list";
 import EmployeeDetails from "@/pages/employee-details";
 import Analytics from "@/pages/analytics";
+import Tasks from "@/pages/tasks";
 import NotFound from "@/pages/not-found";
 import Sidebar from "@/components/sidebar";
 
@@ -26,6 +27,7 @@ function Router() {
           <Route path="/employees/:id" component={EmployeeDetails} />
           <Route path="/ai-assistant" component={AIAssistant} />
           <Route path="/analytics" component={Analytics} />
+          <Route path="/tasks" component={Tasks} />
           <Route component={NotFound} />
         </Switch>
       </main>

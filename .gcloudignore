@@ -15,11 +15,11 @@
 # Node.js dependencies:
 node_modules/
 
-# Development and build files
-src/
-client/
-*.ts
-*.tsx
+# Development and build files - INCLUDE these for build process
+# src/
+# client/    # NEED client/ for build process
+# *.ts       # NEED TypeScript files for build
+# *.tsx      # NEED TypeScript files for build
 *.map
 .env*
 .vscode/
@@ -80,14 +80,14 @@ jspm_packages/
 # Webpack
 webpack.config.js
 
-# Vite
-vite.config.ts
-tsconfig.json
+# Vite - INCLUDE these for build process
+# vite.config.ts    # NEED for build
+# tsconfig.json     # NEED for build
 
-# Development tools
-tailwind.config.ts
-postcss.config.js
-drizzle.config.ts
+# Development tools - INCLUDE these for build process
+# tailwind.config.ts    # NEED for styling
+# postcss.config.js     # NEED for styling  
+# drizzle.config.ts     # NEED for database
 
 # Keep only production files:
 # dist/ (built application)

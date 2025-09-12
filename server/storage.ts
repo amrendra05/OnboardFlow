@@ -6,6 +6,7 @@ import {
   chatMessages,
   knowledgeQueries,
   employeeDocuments,
+  tasks,
   type User,
   type InsertUser,
   type Employee,
@@ -20,9 +21,11 @@ import {
   type InsertKnowledgeQuery,
   type EmployeeDocument,
   type InsertEmployeeDocument,
+  type Task,
+  type InsertTask,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, like, or, sql } from "drizzle-orm";
+import { eq, desc, like, or, sql, and, lt, isNull, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // User management
@@ -60,6 +63,16 @@ export interface IStorage {
   createEmployeeDocument(document: InsertEmployeeDocument): Promise<EmployeeDocument>;
   getEmployeeDocuments(employeeId: string): Promise<EmployeeDocument[]>;
   getAllEmployeeDocuments(): Promise<EmployeeDocument[]>;
+
+  // Task management
+  getTasks(filters?: { status?: string; priority?: string; assignedTo?: string; search?: string; employeeId?: string; overdue?: boolean }): Promise<Task[]>;
+  getTask(id: string): Promise<Task | undefined>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: string, updates: Partial<InsertTask>): Promise<Task>;
+  completeTask(id: string): Promise<Task>;
+  claimTask(id: string, agentId: string, leaseSeconds: number): Promise<Task | null>;
+  recommendTasksForAgent(agentContext: { userId?: string; role?: string; department?: string; scope?: string[] }, limit?: number): Promise<Task[]>;
+  getTaskStats(): Promise<{ total: number; open: number; inProgress: number; completed: number; overdue: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -106,10 +119,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOnboardingProgress(insertProgress: InsertOnboardingProgress): Promise<OnboardingProgress> {
-    const [progress] = await db.insert(onboardingProgress).values({
-      ...insertProgress,
-      tasks: insertProgress.tasks || []
-    }).returning();
+    const [progress] = await db.insert(onboardingProgress).values(insertProgress).returning();
     return progress;
   }
 
@@ -121,7 +131,6 @@ export class DatabaseStorage implements IStorage {
       .update(onboardingProgress)
       .set({ 
         ...updates,
-        tasks: updates.tasks || undefined,
         lastUpdated: sql`now()` 
       })
       .where(eq(onboardingProgress.employeeId, employeeId))
@@ -159,10 +168,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const [document] = await db.insert(documents).values({
-      ...insertDocument,
-      tags: insertDocument.tags || []
-    }).returning();
+    const [document] = await db.insert(documents).values(insertDocument).returning();
     return document;
   }
 
@@ -255,10 +261,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createKnowledgeQuery(insertQuery: InsertKnowledgeQuery): Promise<KnowledgeQuery> {
-    const [query] = await db.insert(knowledgeQueries).values({
-      ...insertQuery,
-      results: insertQuery.results || []
-    }).returning();
+    const [query] = await db.insert(knowledgeQueries).values(insertQuery).returning();
     return query;
   }
 
@@ -288,6 +291,193 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(employeeDocuments)
       .orderBy(desc(employeeDocuments.uploadedAt));
+  }
+
+  // Task management methods
+  async getTasks(filters?: { status?: string; priority?: string; assignedTo?: string; search?: string; employeeId?: string; overdue?: boolean }): Promise<Task[]> {
+    let query = db.select().from(tasks);
+    
+    if (filters) {
+      const conditions = [];
+      
+      if (filters.status) {
+        conditions.push(eq(tasks.status, filters.status));
+      }
+      
+      if (filters.priority) {
+        conditions.push(eq(tasks.priority, filters.priority));
+      }
+      
+      if (filters.assignedTo) {
+        conditions.push(eq(tasks.assignedTo, filters.assignedTo));
+      }
+      
+      if (filters.employeeId) {
+        conditions.push(eq(tasks.targetEmployeeId, filters.employeeId));
+      }
+      
+      if (filters.overdue) {
+        conditions.push(and(
+          isNotNull(tasks.dueDate),
+          lt(tasks.dueDate, sql`now()`),
+          sql`status != 'completed'`
+        ));
+      }
+      
+      if (filters.search) {
+        const searchTerm = `%${filters.search}%`;
+        conditions.push(or(
+          like(tasks.title, searchTerm),
+          like(tasks.description, searchTerm)
+        ));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as any;
+      }
+    }
+    
+    return await query.orderBy(desc(tasks.updatedAt));
+  }
+
+  async getTask(id: string): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task || undefined;
+  }
+
+  async createTask(insertTask: InsertTask): Promise<Task> {
+    const [task] = await db.insert(tasks).values(insertTask).returning();
+    return task;
+  }
+
+  async updateTask(id: string, updates: Partial<InsertTask>): Promise<Task> {
+    const [task] = await db
+      .update(tasks)
+      .set({ 
+        ...updates,
+        updatedAt: sql`now()` 
+      })
+      .where(eq(tasks.id, id))
+      .returning();
+    return task;
+  }
+
+  async completeTask(id: string): Promise<Task> {
+    const [task] = await db
+      .update(tasks)
+      .set({ 
+        status: 'completed',
+        updatedAt: sql`now()` 
+      })
+      .where(eq(tasks.id, id))
+      .returning();
+    return task;
+  }
+
+  async claimTask(id: string, agentId: string, leaseSeconds: number): Promise<Task | null> {
+    try {
+      // Validate lease seconds for security
+      if (leaseSeconds <= 0 || leaseSeconds > 86400) { // Max 24 hours
+        throw new Error('Invalid lease duration');
+      }
+      
+      const [task] = await db
+        .update(tasks)
+        .set({ 
+          claimedByAgentId: agentId,
+          claimExpiresAt: sql`now() + (${leaseSeconds} || ' seconds')::interval`,
+          updatedAt: sql`now()` 
+        })
+        .where(
+          and(
+            eq(tasks.id, id),
+            eq(tasks.status, 'open'),
+            or(
+              isNull(tasks.claimExpiresAt),
+              lt(tasks.claimExpiresAt, sql`now()`)
+            )
+          )
+        )
+        .returning();
+      
+      return task || null;
+    } catch (error) {
+      console.error('Error claiming task:', error);
+      return null;
+    }
+  }
+
+  async recommendTasksForAgent(agentContext: { userId?: string; role?: string; department?: string; scope?: string[] }, limit: number = 10): Promise<Task[]> {
+    // Get available tasks (open status and not claimed or claim expired)
+    const availableTasks = await db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.status, 'open'),
+          or(
+            isNull(tasks.claimExpiresAt),
+            lt(tasks.claimExpiresAt, sql`now()`)
+          )
+        )
+      )
+      .orderBy(desc(tasks.updatedAt));
+
+    // Score tasks based on priority, due date, and relevance
+    const scoredTasks = availableTasks.map(task => {
+      let score = 0;
+      
+      // Priority scoring
+      switch (task.priority) {
+        case 'critical': score += 100; break;
+        case 'high': score += 70; break;
+        case 'medium': score += 40; break;
+        case 'low': score += 10; break;
+      }
+      
+      // Due date urgency
+      if (task.dueDate) {
+        const hoursUntilDue = (new Date(task.dueDate).getTime() - Date.now()) / (1000 * 60 * 60);
+        if (hoursUntilDue < 0) {
+          score += 60; // Overdue
+        } else {
+          score += Math.max(50 - hoursUntilDue, 0);
+        }
+      }
+      
+      // Relevance scoring
+      if (agentContext.userId && task.assignedTo === agentContext.userId) {
+        score += 100;
+      }
+      
+      return { task, score };
+    });
+
+    // Sort by score and return top tasks
+    return scoredTasks
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(item => item.task);
+  }
+
+  async getTaskStats(): Promise<{ total: number; open: number; inProgress: number; completed: number; overdue: number }> {
+    const [stats] = await db
+      .select({
+        total: sql<number>`count(*)`,
+        open: sql<number>`count(*) filter (where status = 'open')`,
+        inProgress: sql<number>`count(*) filter (where status = 'in_progress')`,
+        completed: sql<number>`count(*) filter (where status = 'completed')`,
+        overdue: sql<number>`count(*) filter (where due_date < now() and status != 'completed')`
+      })
+      .from(tasks);
+
+    return {
+      total: stats?.total || 0,
+      open: stats?.open || 0,
+      inProgress: stats?.inProgress || 0,
+      completed: stats?.completed || 0,
+      overdue: stats?.overdue || 0,
+    };
   }
 }
 
