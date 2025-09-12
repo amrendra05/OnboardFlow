@@ -166,19 +166,12 @@ export default function Analytics() {
                         </span>
                         <Badge variant="secondary" className="bg-purple-100 text-purple-800">{count} employees</Badge>
                       </div>
-                      <div className="relative">
-                        <Progress 
-                          value={totalEmployees > 0 ? (count / totalEmployees) * 100 : 0} 
-                          className="h-3"
-                          style={{
-                            background: `linear-gradient(to right, ${COLORS[index % COLORS.length]}22, ${COLORS[index % COLORS.length]}44)`
-                          }}
-                        />
+                      <div className="relative bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
                         <div 
-                          className="absolute top-0 left-0 h-3 rounded-full transition-all duration-1000 ease-out shadow-sm"
+                          className="h-full rounded-full transition-all duration-1000 ease-out"
                           style={{
                             width: `${totalEmployees > 0 ? (count / totalEmployees) * 100 : 0}%`,
-                            background: `linear-gradient(to right, ${COLORS[index % COLORS.length]}, ${COLORS[(index + 1) % COLORS.length]})`
+                            background: `linear-gradient(to right, ${COLORS[index % COLORS.length]}, ${COLORS[index % COLORS.length]}DD)`
                           }}
                         />
                       </div>
