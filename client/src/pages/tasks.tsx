@@ -307,7 +307,11 @@ export default function Tasks() {
                           <Textarea
                             data-testid="input-task-description"
                             placeholder="Enter task description"
-                            {...field}
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            onBlur={field.onBlur}
+                            name={field.name}
+                            ref={field.ref}
                           />
                         </FormControl>
                         <FormMessage />
@@ -445,10 +449,18 @@ export default function Tasks() {
                               type="date"
                               data-testid="input-task-due-date"
                               className="h-10"
-                              value={field.value ?? ""}
+                              value={
+                                field.value
+                                  ? new Date(field.value)
+                                      .toISOString()
+                                      .split("T")[0]
+                                  : ""
+                              }
                               onChange={(e) =>
                                 field.onChange(
-                                  e.target.value === "" ? null : e.target.value,
+                                  e.target.value === ""
+                                    ? null
+                                    : new Date(e.target.value).toISOString(),
                                 )
                               }
                               onBlur={field.onBlur}
@@ -785,7 +797,7 @@ export default function Tasks() {
                       )}
                     </div>
                     <div data-testid={`task-created-${task.id}`}>
-                      Created {format(new Date(task.createdAt), "MMM d, yyyy")}
+                      Created {task.createdAt ? format(new Date(task.createdAt), "MMM d, yyyy") : "Unknown date"}
                     </div>
                   </div>
                 </CardContent>
