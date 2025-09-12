@@ -87,6 +87,7 @@ export default function Tasks() {
       source: "manual",
       tags: [],
       assignedTo: "unassigned",
+      dueDate: null,
     },
   });
 
@@ -441,9 +442,10 @@ export default function Tasks() {
                           <FormLabel>Due Date</FormLabel>
                           <FormControl>
                             <Input
-                              data-testid="input-task-due-date"
                               type="date"
-                              value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value ?? ""}
+                              data-testid="input-task-due-date"
+                              className="h-10"
+                              value={field.value ?? ""}
                               onChange={(e) =>
                                 field.onChange(
                                   e.target.value === "" ? null : e.target.value,
