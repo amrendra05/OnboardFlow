@@ -450,17 +450,15 @@ export default function Tasks() {
                               data-testid="input-task-due-date"
                               className="h-10"
                               value={
-                                field.value
-                                  ? new Date(field.value)
-                                      .toISOString()
-                                      .split("T")[0]
-                                  : ""
+                                field.value instanceof Date
+                                  ? field.value.toISOString().split("T")[0]
+                                  : field.value || ""
                               }
                               onChange={(e) =>
                                 field.onChange(
                                   e.target.value === ""
                                     ? null
-                                    : new Date(e.target.value).toISOString(),
+                                    : new Date(e.target.value + "T00:00:00"),
                                 )
                               }
                               onBlur={field.onBlur}
