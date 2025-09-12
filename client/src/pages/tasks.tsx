@@ -41,7 +41,7 @@ import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTaskSchema, type Task, type Employee } from "@shared/schema";
-import type { z } from "zod";
+import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -77,7 +77,9 @@ export default function Tasks() {
   });
 
   const form = useForm<TaskFormData>({
-    resolver: zodResolver(insertTaskSchema),
+    resolver: zodResolver(insertTaskSchema.extend({
+      dueDate: z.string().nullable().optional()
+    })),
     defaultValues: {
       title: "",
       description: "",
