@@ -83,7 +83,7 @@ export default function Tasks() {
       description: "",
       status: "open",
       priority: "medium",
-      createdBy: "5ca6e13e-4466-401a-843e-ab0c07a746eb", // Use existing user ID from employees
+      createdBy: "system", // Use system user
       source: "manual",
       tags: [],
       assignedTo: "unassigned",

@@ -81,7 +81,7 @@ export const tasks = pgTable("tasks", {
   status: text("status").notNull().default("open"), // 'open' | 'in_progress' | 'blocked' | 'completed'
   priority: text("priority").notNull().default("medium"), // 'critical' | 'high' | 'medium' | 'low'
   dueDate: timestamp("due_date"),
-  assignedTo: varchar("assigned_to").references(() => users.id),
+  assignedTo: varchar("assigned_to").references(() => employees.id),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   targetEmployeeId: varchar("target_employee_id").references(() => employees.id),
   tags: jsonb("tags").$type<string[]>().notNull().default([]),
